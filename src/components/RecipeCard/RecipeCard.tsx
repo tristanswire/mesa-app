@@ -19,9 +19,25 @@ const PLACEHOLDER_PALETTE = [
   colors.clay,
 ];
 
-function RecipeImagePlaceholder({ title, aspectRatio }: { title: string; aspectRatio: number }) {
-  const index = title.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % PLACEHOLDER_PALETTE.length;
-  const base = PLACEHOLDER_PALETTE[index];
+const TINT_COLORS = {
+  terracotta: colors.terracotta,
+  olive: colors.olive,
+} as const;
+
+function RecipeImagePlaceholder({
+  title,
+  aspectRatio,
+  tintKey,
+}: {
+  title: string;
+  aspectRatio: number;
+  tintKey?: 'terracotta' | 'olive';
+}) {
+  const base = tintKey
+    ? TINT_COLORS[tintKey]
+    : PLACEHOLDER_PALETTE[
+        title.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % PLACEHOLDER_PALETTE.length
+      ];
 
   return (
     <View style={[styles.placeholder, { aspectRatio }]}>
@@ -47,6 +63,7 @@ export interface RecipeCardProps {
   duration: string;
   tag?: string;
   imageSource?: ImageSourcePropType;
+  tintKey?: 'terracotta' | 'olive';
   variant: 'hero' | 'grid';
   label?: string;
   onPress: () => void;
@@ -58,6 +75,7 @@ export function RecipeCard({
   duration,
   tag,
   imageSource,
+  tintKey,
   variant,
   label,
   onPress,
@@ -85,7 +103,7 @@ export function RecipeCard({
         />
       ) : (
         <View style={[styles.image, isHero ? styles.heroImage : styles.gridImage]}>
-          <RecipeImagePlaceholder title={title} aspectRatio={isHero ? 16 / 9 : 1} />
+          <RecipeImagePlaceholder title={title} aspectRatio={isHero ? 16 / 9 : 1} tintKey={tintKey} />
         </View>
       )}
 

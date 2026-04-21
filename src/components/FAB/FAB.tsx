@@ -2,7 +2,6 @@ import * as Haptics from 'expo-haptics';
 import { ImpactFeedbackStyle } from 'expo-haptics';
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, type LucideProps } from 'lucide-react-native';
 import { colors, radii, shadows, spacing } from '../../theme';
 
@@ -15,8 +14,6 @@ export interface FABProps {
 }
 
 export function FAB({ icon: Icon = Plus, onPress, accessibilityLabel }: FABProps) {
-  const insets = useSafeAreaInsets();
-
   const handlePress = async () => {
     await Haptics.impactAsync(ImpactFeedbackStyle.Light);
     onPress();
@@ -30,8 +27,8 @@ export function FAB({ icon: Icon = Plus, onPress, accessibilityLabel }: FABProps
       style={({ pressed }) => [
         styles.fab,
         {
-          bottom: spacing.lg + insets.bottom,
-          right: spacing.lg,
+          bottom: spacing.base,
+          right: spacing.base,
         },
         pressed && styles.pressed,
       ]}
@@ -50,9 +47,11 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: radii.pill,
     backgroundColor: colors.terracotta,
+    borderWidth: 2,
+    borderColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.fab,
+    ...shadows.fabStrong,
   },
   pressed: {
     transform: [{ scale: 0.94 }],

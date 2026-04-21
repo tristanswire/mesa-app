@@ -7,6 +7,8 @@ import { Text } from '../Text';
 
 type LucideIcon = React.ComponentType<LucideProps>;
 
+export const TAB_BAR_HEIGHT = 64;
+
 export interface TabItem {
   key: string;
   label: string;

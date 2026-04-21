@@ -22,6 +22,14 @@ export const shadows = {
     shadowRadius: 16,
     elevation: 8,
   },
+  /** Primary FAB over content — deeper shadow + pairs with cream ring for contrast on busy backgrounds */
+  fabStrong: {
+    shadowColor: '#1F1C19',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    elevation: 12,
+  },
 } as const;
 
 export type ShadowToken = keyof typeof shadows;
