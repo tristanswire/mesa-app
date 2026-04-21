@@ -7,7 +7,7 @@ const Stack = createNativeStackNavigator<OnboardingStackParamList>();
 
 export function OnboardingNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, statusBarStyle: 'dark' }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ValueProp" component={ValuePropScreen} />
       <Stack.Screen name="AhaMoment" component={AhaMomentScreen} />
       <Stack.Screen name="Preferences" component={PreferencesScreen} />

@@ -5,12 +5,15 @@ import { Button } from '../../components/Button';
 import { Text } from '../../components/Text';
 import { SectionLabel } from '../../components/SectionLabel';
 import { colors, spacing } from '../../theme';
+import { StatusBar } from 'expo-status-bar';
 
 export function PreferencesScreen() {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe}>
       <View style={styles.center}>
         <SectionLabel>ONBOARDING / STEP 3</SectionLabel>
         <View style={{ height: spacing.sm }} />
@@ -36,6 +39,7 @@ export function PreferencesScreen() {
         />
       </View>
     </SafeAreaView>
+    </>
   );
 }
 

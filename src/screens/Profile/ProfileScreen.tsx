@@ -7,6 +7,7 @@ import { Text } from '../../components/Text';
 import { SectionLabel } from '../../components/SectionLabel';
 import { colors, spacing } from '../../theme';
 import type { MainStackParamList, RootStackParamList } from '../../navigation/types';
+import { StatusBar } from 'expo-status-bar';
 
 // ProfileScreen needs two navigation scopes:
 // - MainStackParamList for Showcase (within Main stack)
@@ -19,7 +20,9 @@ export function ProfileScreen() {
   const rootNav = useNavigation<RootNav>();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe}>
       <View style={styles.center}>
         <SectionLabel>MAIN / TABS</SectionLabel>
         <View style={{ height: spacing.sm }} />
@@ -41,6 +44,7 @@ export function ProfileScreen() {
         />
       </View>
     </SafeAreaView>
+    </>
   );
 }
 

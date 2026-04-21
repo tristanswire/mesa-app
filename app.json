@@ -14,10 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tristanswire.mesa",
-      "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": true
-      }
+      "bundleIdentifier": "com.tristanswire.mesa"
     },
     "platforms": ["ios"]
   }

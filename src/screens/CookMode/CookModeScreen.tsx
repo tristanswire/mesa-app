@@ -7,6 +7,7 @@ import { Text } from '../../components/Text';
 import { SectionLabel } from '../../components/SectionLabel';
 import { colors, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
+import { StatusBar } from 'expo-status-bar';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -14,8 +15,10 @@ export function CookModeScreen() {
   const navigation = useNavigation<Nav>();
 
   return (
-    // Pine background previews the Cook Mode dark surface
-    <SafeAreaView style={styles.safe}>
+    <>
+      <StatusBar style="light" />
+      {/* Pine background previews the Cook Mode dark surface */}
+      <SafeAreaView style={styles.safe}>
       <View style={styles.center}>
         <SectionLabel color="clay">MAIN / FULL-SCREEN</SectionLabel>
         <View style={{ height: spacing.sm }} />
@@ -42,6 +45,7 @@ export function CookModeScreen() {
         />
       </View>
     </SafeAreaView>
+    </>
   );
 }
 

@@ -6,6 +6,7 @@ import { FAB } from '../../components/FAB';
 import { Button } from '../../components/Button';
 import { Text } from '../../components/Text';
 import { SectionLabel } from '../../components/SectionLabel';
+import { StatusBar } from 'expo-status-bar';
 import { colors, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -15,31 +16,34 @@ export function HomeScreen() {
   const navigation = useNavigation<Nav>();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.center}>
-        <SectionLabel>MAIN / TABS</SectionLabel>
-        <View style={{ height: spacing.sm }} />
-        <Text role="display">Home</Text>
-        <View style={{ height: spacing.xs }} />
-        <Text role="caption" color="oliveDark">route: Home</Text>
-        <View style={{ height: spacing.xl }} />
-        <Button
-          variant="primary"
-          label="View Recipe →"
-          onPress={() => navigation.navigate('RecipeDetail', { recipeId: 'mock-recipe-1' })}
-        />
-        <View style={{ height: spacing.sm }} />
-        <Button
-          variant="secondary"
-          label="Open Import"
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <SectionLabel>MAIN / TABS</SectionLabel>
+          <View style={{ height: spacing.sm }} />
+          <Text role="display">Home</Text>
+          <View style={{ height: spacing.xs }} />
+          <Text role="caption" color="oliveDark">route: Home</Text>
+          <View style={{ height: spacing.xl }} />
+          <Button
+            variant="primary"
+            label="View Recipe →"
+            onPress={() => navigation.navigate('RecipeDetail', { recipeId: 'mock-recipe-1' })}
+          />
+          <View style={{ height: spacing.sm }} />
+          <Button
+            variant="secondary"
+            label="Open Import"
+            onPress={() => navigation.navigate('Import')}
+          />
+        </View>
+        <FAB
           onPress={() => navigation.navigate('Import')}
+          accessibilityLabel="Import a recipe"
         />
-      </View>
-      <FAB
-        onPress={() => navigation.navigate('Import')}
-        accessibilityLabel="Import a recipe"
-      />
-    </SafeAreaView>
+      </SafeAreaView>
+    </>
   );
 }
 

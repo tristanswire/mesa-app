@@ -7,6 +7,7 @@ import { Text } from '../../components/Text';
 import { SectionLabel } from '../../components/SectionLabel';
 import { colors, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
+import { StatusBar } from 'expo-status-bar';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -14,7 +15,9 @@ export function ImportScreen() {
   const navigation = useNavigation<Nav>();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe}>
       <View style={styles.center}>
         <SectionLabel>MAIN / MODAL</SectionLabel>
         <View style={{ height: spacing.sm }} />
@@ -38,6 +41,7 @@ export function ImportScreen() {
         />
       </View>
     </SafeAreaView>
+    </>
   );
 }
 

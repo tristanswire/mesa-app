@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text as RNText, View } from 'react-native';
 import { Home, User, Bookmark, Link as LinkIcon } from 'lucide-react-native';
@@ -61,7 +62,9 @@ export function ShowcaseScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
         {/* Back button */}
@@ -277,6 +280,7 @@ export function ShowcaseScreen() {
 
       <FAB onPress={() => {}} accessibilityLabel="Add new recipe" />
     </SafeAreaView>
+    </>
   );
 }
 
