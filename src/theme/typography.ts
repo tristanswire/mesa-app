@@ -79,12 +79,12 @@ export const typography: Record<TypographyRole, TypographyStyle> = {
     lineHeight: 33, // 1.5 × 22
     color: 'white',
   },
-  /** Cook Mode step counter — oversized for at-a-glance progress */
+  /** Cook Mode step counter — oversized for at-a-glance progress; tinted on pine */
   cookModeStepNumber: {
     fontFamily: Inter.bold,
     fontSize: 48,
     fontWeight: '700',
-    color: 'white',
+    color: 'creamMuted',
   },
   /** Cook Mode ingredient chips on pine surface */
   cookModeIngredientChip: {
