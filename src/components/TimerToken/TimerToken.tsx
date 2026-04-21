@@ -10,9 +10,8 @@ export interface TimerTokenProps {
   theme?: 'dark' | 'light';
 }
 
-// VS15 selector requests text-presentation (monochrome) instead of color emoji on iOS.
 // Phase 3 will replace with a Lucide Timer icon in a standalone non-inline layout.
-const TIMER_GLYPH = '\u23F1\uFE0E ';
+const TIMER_GLYPH = '\u25F7 ';
 
 export function TimerToken({
   label,
