@@ -11,4 +11,6 @@ export {
   Home,
   User,
   Timer,
+  Plus,
+  Search,
 } from 'lucide-react-native';
