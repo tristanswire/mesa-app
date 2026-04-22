@@ -20,4 +20,6 @@ export {
   Star,
   X,
   ChevronRight,
+  Camera,
+  Pencil,
 } from 'lucide-react-native';
