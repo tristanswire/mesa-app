@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   cardDark: {
     // cream at 8% over pine — "raised card" effect without a new token
-    backgroundColor: 'rgba(247, 242, 234, 0.08)',
+    backgroundColor: 'rgba(247, 242, 234, 0.12)',
   },
   thumbnail: {
     width: 64,

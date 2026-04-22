@@ -19,4 +19,5 @@ export {
   Check,
   Star,
   X,
+  ChevronRight,
 } from 'lucide-react-native';
