@@ -15,4 +15,5 @@ export {
   Search,
   ChevronLeft,
   MoreVertical,
+  Sun,
 } from 'lucide-react-native';

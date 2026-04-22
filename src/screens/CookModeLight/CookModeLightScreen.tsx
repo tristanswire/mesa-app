@@ -1,53 +1,18 @@
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import React from 'react';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
-import { Button } from '../../components/Button';
-import { Text } from '../../components/Text';
-import { SectionLabel } from '../../components/SectionLabel';
-import { colors, spacing } from '../../theme';
 import type { MainStackParamList } from '../../navigation/types';
-import { StatusBar } from 'expo-status-bar';
+import { CookModeView } from '../CookMode/CookModeView';
 
-type Nav = NativeStackNavigationProp<MainStackParamList>;
+type Route = RouteProp<MainStackParamList, 'CookModeLight'>;
 
 export function CookModeLightScreen() {
-  const navigation = useNavigation<Nav>();
-
+  const route = useRoute<Route>();
   return (
-    <>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safe}>
-      <View style={styles.center}>
-        <SectionLabel>MAIN / FULL-SCREEN</SectionLabel>
-        <View style={{ height: spacing.sm }} />
-        <Text role="display">Cook Mode Light</Text>
-        <View style={{ height: spacing.xs }} />
-        <Text role="caption" color="oliveDark">route: CookModeLight</Text>
-        <View style={{ height: spacing.xl }} />
-        <Button
-          variant="primary"
-          label="Finish Cooking →"
-          onPress={() => navigation.navigate('PostCook', { recipeId: 'mock-recipe-1' })}
-        />
-        <View style={{ height: spacing.sm }} />
-        <Button
-          variant="secondary"
-          label="← Back"
-          onPress={() => navigation.goBack()}
-        />
-      </View>
-    </SafeAreaView>
-    </>
+    <CookModeView
+      recipeId={route.params.recipeId}
+      initialStepIndex={route.params.stepIndex}
+      theme="light"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.cream },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-});
