@@ -7,56 +7,9 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import { colors, radii, shadows, spacing } from '../../theme';
+import { RecipeImagePlaceholder } from '../RecipeImagePlaceholder';
 import { SectionLabel } from '../SectionLabel';
 import { Text } from '../Text';
-
-// Palette for image placeholders — cycles based on title char code sum
-const PLACEHOLDER_PALETTE = [
-  colors.terracotta,
-  colors.olive,
-  colors.oliveDark,
-  colors.pine,
-  colors.clay,
-];
-
-const TINT_COLORS = {
-  terracotta: colors.terracotta,
-  olive: colors.olive,
-} as const;
-
-function RecipeImagePlaceholder({
-  title,
-  aspectRatio,
-  tintKey,
-}: {
-  title: string;
-  aspectRatio: number;
-  tintKey?: 'terracotta' | 'olive';
-}) {
-  const base = tintKey
-    ? TINT_COLORS[tintKey]
-    : PLACEHOLDER_PALETTE[
-        title.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % PLACEHOLDER_PALETTE.length
-      ];
-
-  return (
-    <View style={[styles.placeholder, { aspectRatio }]}>
-      {/* Simulated diagonal stripe pattern via rotated overlay */}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: base }]} />
-      <View style={styles.stripeContainer} pointerEvents="none">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.stripe,
-              { left: i * 24 - 48, backgroundColor: 'rgba(255,255,255,0.07)' },
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
 
 export interface RecipeCardProps {
   title: string;
@@ -103,7 +56,11 @@ export function RecipeCard({
         />
       ) : (
         <View style={[styles.image, isHero ? styles.heroImage : styles.gridImage]}>
-          <RecipeImagePlaceholder title={title} aspectRatio={isHero ? 16 / 9 : 1} tintKey={tintKey} />
+          <RecipeImagePlaceholder
+            title={title}
+            aspectRatio={isHero ? 16 / 9 : 1}
+            tintKey={tintKey}
+          />
         </View>
       )}
 
@@ -115,7 +72,7 @@ export function RecipeCard({
           </View>
         )}
 
-        <Text role="body" style={styles.title} numberOfLines={isHero ? 2 : 2}>
+        <Text role="body" style={styles.title} numberOfLines={2}>
           {title}
         </Text>
 
@@ -162,22 +119,6 @@ const styles = StyleSheet.create({
   gridImage: {
     borderTopLeftRadius: radii.md,
     borderTopRightRadius: radii.md,
-  },
-  placeholder: {
-    width: '100%',
-    overflow: 'hidden',
-  },
-  stripeContainer: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    transform: [{ rotate: '45deg' }, { scaleX: 2 }],
-    overflow: 'hidden',
-  },
-  stripe: {
-    position: 'absolute',
-    top: -200,
-    bottom: -200,
-    width: 12,
   },
   content: {
     padding: spacing.sm,

@@ -45,7 +45,12 @@ export function Button({
         disabled && styles.disabled,
       ]}
     >
-      <Text role="body" color={textColor} style={styles.label}>
+      <Text
+        role="body"
+        color={textColor}
+        numberOfLines={1}
+        style={styles.label}
+      >
         {label}
       </Text>
     </Pressable>
@@ -56,7 +61,7 @@ const styles = StyleSheet.create({
   base: {
     minHeight: 48,
     paddingVertical: spacing.base,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.base,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',

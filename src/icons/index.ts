@@ -13,4 +13,6 @@ export {
   Timer,
   Plus,
   Search,
+  ChevronLeft,
+  MoreVertical,
 } from 'lucide-react-native';

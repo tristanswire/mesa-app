@@ -16,6 +16,9 @@ export type { InputProps } from './Input';
 export { RecipeCard } from './RecipeCard';
 export type { RecipeCardProps } from './RecipeCard';
 
+export { RecipeImagePlaceholder } from './RecipeImagePlaceholder';
+export type { RecipeImagePlaceholderProps } from './RecipeImagePlaceholder';
+
 export { StepCard } from './StepCard';
 export type { StepCardProps } from './StepCard';
 
