@@ -16,4 +16,7 @@ export {
   ChevronLeft,
   MoreVertical,
   Sun,
+  Check,
+  Star,
+  X,
 } from 'lucide-react-native';
