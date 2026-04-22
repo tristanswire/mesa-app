@@ -1,3 +1,17 @@
+export type MockPrepItem = {
+  id: string;
+  label: string;
+  duration?: string;
+  defaultChecked?: boolean;
+};
+
+export type MockTool = {
+  id: string;
+  name: string;
+  price: string;
+  partner: string;
+};
+
 export type MockIngredient = {
   id: string;
   amount: string;
@@ -21,6 +35,8 @@ export type MockRecipe = {
   tintKey: 'terracotta' | 'olive';
   ingredients: MockIngredient[];
   steps: MockStep[];
+  prepItems?: MockPrepItem[];
+  tools?: MockTool[];
 };
 
 export const MOCK_RECIPES: Record<string, MockRecipe> = {
@@ -49,6 +65,18 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
       { id: 'step-4', instruction: 'Roast until chicken is golden and cooked through, about 25 minutes.', ingredientRefs: [], timers: [{ label: 'roast 25 min', durationSeconds: 1500 }] },
       { id: 'step-5', instruction: 'Finish with flaky sea salt and serve directly from the pan.', ingredientRefs: ['ing-9'] },
     ],
+    prepItems: [
+      { id: 'prep-1', label: 'Preheat oven to 425°F', duration: '20 min', defaultChecked: true },
+      { id: 'prep-2', label: 'Take chicken out to temper', duration: '15 min', defaultChecked: true },
+      { id: 'prep-3', label: 'Dice 1 onion and mince 3 cloves garlic' },
+      { id: 'prep-4', label: 'Measure 2 tbsp olive oil · 1 tsp cumin' },
+      { id: 'prep-5', label: 'Pat chicken thighs dry' },
+    ],
+    tools: [
+      { id: 'tool-1', name: 'Nordic Ware Half Sheet Pan', price: '$28', partner: 'Amazon' },
+      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Sur La Table' },
+      { id: 'tool-3', name: 'OXO Good Grips Can Opener', price: '$12', partner: 'Amazon' },
+    ],
   },
   'broccoli-tahini': {
     id: 'broccoli-tahini',
@@ -68,6 +96,16 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
       { id: 'step-1', instruction: 'Toss broccoli with olive oil and a generous pinch of salt.', ingredientRefs: ['ing-1', 'ing-5'] },
       { id: 'step-2', instruction: 'Roast at 450°F until florets are deeply charred at the edges, about 15 minutes.', ingredientRefs: [], timers: [{ label: 'roast 15 min', durationSeconds: 900 }] },
       { id: 'step-3', instruction: 'Whisk tahini with lemon juice, garlic, and 2 tbsp water. Drizzle over broccoli.', ingredientRefs: ['ing-2', 'ing-3', 'ing-4'] },
+    ],
+    prepItems: [
+      { id: 'prep-1', label: 'Preheat oven to 450°F', duration: '15 min' },
+      { id: 'prep-2', label: 'Cut broccoli into florets' },
+      { id: 'prep-3', label: 'Grate garlic clove' },
+      { id: 'prep-4', label: 'Juice lemon' },
+    ],
+    tools: [
+      { id: 'tool-1', name: 'Nordic Ware Half Sheet Pan', price: '$28', partner: 'Amazon' },
+      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Sur La Table' },
     ],
   },
   'miso-salmon': {
@@ -89,6 +127,15 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
       { id: 'step-2', instruction: 'Brush glaze over salmon fillets. Broil 4 inches from heat for 8 minutes.', ingredientRefs: ['ing-1'], timers: [{ label: 'broil 8 min', durationSeconds: 480 }] },
       { id: 'step-3', instruction: 'Serve over rice with remaining glaze spooned on top.', ingredientRefs: ['ing-5'] },
     ],
+    prepItems: [
+      { id: 'prep-1', label: 'Preheat broiler to high', duration: '5 min' },
+      { id: 'prep-2', label: 'Position rack 4 inches from broiler element' },
+      { id: 'prep-3', label: 'Cook rice per package instructions', duration: '20 min' },
+    ],
+    tools: [
+      { id: 'tool-1', name: 'All-Clad Stainless Broiler Pan', price: '$45', partner: 'Williams Sonoma' },
+      { id: 'tool-2', name: 'OXO Silicone Basting Brush', price: '$10', partner: 'Amazon' },
+    ],
   },
   'dutch-baby': {
     id: 'dutch-baby',
@@ -108,6 +155,15 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
       { id: 'step-1', instruction: 'Preheat oven to 425°F with a 10-inch cast iron skillet inside.', ingredientRefs: [] },
       { id: 'step-2', instruction: 'Blend eggs, flour, and milk until smooth.', ingredientRefs: ['ing-1', 'ing-2', 'ing-3'] },
       { id: 'step-3', instruction: 'Melt butter in the hot skillet, pour in batter, and bake 20 minutes until puffed and golden.', ingredientRefs: ['ing-4'], timers: [{ label: 'bake 20 min', durationSeconds: 1200 }] },
+    ],
+    prepItems: [
+      { id: 'prep-1', label: 'Place cast iron skillet in cold oven, preheat to 425°F', duration: '15 min' },
+      { id: 'prep-2', label: 'Measure and combine eggs, flour, and milk' },
+      { id: 'prep-3', label: 'Blend batter until completely smooth' },
+    ],
+    tools: [
+      { id: 'tool-1', name: 'Lodge 10" Cast Iron Skillet', price: '$35', partner: 'Amazon' },
+      { id: 'tool-2', name: 'Vitamix Immersion Blender', price: '$80', partner: 'Williams Sonoma' },
     ],
   },
 };
