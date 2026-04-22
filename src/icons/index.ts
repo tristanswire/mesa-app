@@ -22,4 +22,5 @@ export {
   ChevronRight,
   Camera,
   Pencil,
+  Sparkles,
 } from 'lucide-react-native';
