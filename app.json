@@ -16,6 +16,11 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.tristanswire.mesa"
     },
-    "platforms": ["ios"]
+    "platforms": [
+      "ios"
+    ],
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
