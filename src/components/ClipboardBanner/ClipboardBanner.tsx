@@ -20,7 +20,7 @@ export function ClipboardBanner({ url, onImport, onDismiss }: ClipboardBannerPro
       {/* Text stack */}
       <View style={styles.textStack}>
         <Text role="body" style={styles.title}>
-          Link detected — import this?
+          Link detected
         </Text>
         <Text role="caption" numberOfLines={1} style={styles.url}>
           {url}

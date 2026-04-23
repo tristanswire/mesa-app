@@ -23,4 +23,5 @@ export {
   Camera,
   Pencil,
   Sparkles,
+  ChefHat,
 } from 'lucide-react-native';

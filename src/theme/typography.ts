@@ -77,7 +77,7 @@ export const typography: Record<TypographyRole, TypographyStyle> = {
     fontSize: 22,
     fontWeight: '500',
     lineHeight: 33, // 1.5 × 22
-    color: 'white',
+    color: 'cream',
   },
   /** Cook Mode step counter — oversized for at-a-glance progress; tinted on pine */
   cookModeStepNumber: {

@@ -181,7 +181,7 @@ export function ShowcaseScreen() {
         <StepCard
           stepNumber={2} totalSteps={5} theme="dark"
           content={
-            <Text role="cookModeBody" color="cream">
+            <Text role="cookModeBody">
               Heat{' '}<IngredientChip label="2 tbsp olive oil" theme="dark" />{' '}in a large pan over medium heat, then add{' '}<IngredientChip label="3 cloves garlic" theme="dark" />{' '}and cook for{' '}<TimerToken label="bake 18 min" durationSeconds={1080} theme="dark" isActive={false} />{' '}until fragrant.
             </Text>
           }
@@ -191,7 +191,7 @@ export function ShowcaseScreen() {
         <StepCard
           stepNumber={3} totalSteps={5} theme="dark"
           content={
-            <Text role="cookModeBody" color="cream">
+            <Text role="cookModeBody">
               Add{' '}<IngredientChip label="1 cup broth" theme="dark" />{' '}and{' '}<IngredientChip label="1 tsp salt" theme="dark" />{', '}then simmer for{' '}<TimerToken label="17:42" durationSeconds={1062} theme="dark" isActive />{'.'}
             </Text>
           }

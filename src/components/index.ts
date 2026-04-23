@@ -48,3 +48,9 @@ export type { AffiliateCardProps } from './AffiliateCard';
 
 export { ClipboardBanner } from './ClipboardBanner';
 export type { ClipboardBannerProps } from './ClipboardBanner';
+
+export { Pill } from './Pill';
+export type { PillProps } from './Pill';
+
+export { SettingRow } from './SettingRow';
+export type { SettingRowProps } from './SettingRow';

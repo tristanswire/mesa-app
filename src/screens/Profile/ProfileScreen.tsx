@@ -1,11 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { ChevronRight, User } from 'lucide-react-native';
+import { User } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
+import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
 import type { MainStackParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
@@ -21,30 +22,6 @@ const MOCK_STATS = {
   collections: 6,
   thisWeek: 3,
 };
-
-function SettingRow({
-  label,
-  onPress,
-  isLast = false,
-}: {
-  label: string;
-  onPress: () => void;
-  isLast?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        !isLast && styles.rowBorder,
-        pressed && { opacity: 0.6 },
-      ]}
-    >
-      <Text role="body">{label}</Text>
-      <ChevronRight size={20} color={colors.oliveDark} strokeWidth={1.5} />
-    </Pressable>
-  );
-}
 
 export function ProfileScreen() {
   const mainNav = useNavigation<MainNav>();
@@ -212,17 +189,6 @@ const styles = StyleSheet.create({
     width: 1,
     alignSelf: 'stretch',
     backgroundColor: 'rgba(31, 28, 25, 0.1)',
-  },
-  // ── Setting rows ────────────────────────────────────────────────────
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.base,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.oat,
   },
   // ── Links ───────────────────────────────────────────────────────────
   centerLink: {

@@ -2,51 +2,28 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ChefHat } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
+import { Button } from '../../components/Button';
 import { FAB } from '../../components/FAB';
 import { Input } from '../../components/Input';
+import { Pill } from '../../components/Pill';
 import { RecipeCard } from '../../components/RecipeCard';
 import { Text } from '../../components/Text';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, radii, spacing } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { mockFilters, mockRecipes } from './mockData';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Recipe = (typeof mockRecipes)[number];
 
-// ─── File-local subcomponents ─────────────────────────────────────────────────
-// FilterPill and ScreenHeader live here until the pill pattern repeats elsewhere.
+// Flip to true to preview the empty state layout (Phase 3 wires real logic)
+const showEmptyState = false;
 
-function FilterPill({
-  label,
-  isActive,
-  onPress,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected: isActive }}
-      style={[styles.pill, isActive ? styles.pillActive : styles.pillInactive]}
-    >
-      <Text
-        role="caption"
-        color={isActive ? 'cream' : 'ink'}
-        style={styles.pillText}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
+// TODO Phase 3: loading skeleton while recipes fetch from local DB
 
 type HeaderProps = {
   searchQuery: string;
@@ -81,10 +58,10 @@ function ScreenHeader({
         contentContainerStyle={styles.pillsContent}
       >
         {mockFilters.map((filter) => (
-          <FilterPill
+          <Pill
             key={filter}
             label={filter}
-            isActive={activeFilter === filter}
+            active={activeFilter === filter}
             onPress={() => onFilterPress(filter)}
           />
         ))}
@@ -127,27 +104,58 @@ export function RecipesScreen() {
     <>
       <StatusBar style="dark" />
       <View style={styles.root}>
-        <FlatList
-          data={mockRecipes}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
+        {showEmptyState ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingTop: insets.top + spacing.lg },
+            ]}
+          >
             <ScreenHeader
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               activeFilter={activeFilter}
               onFilterPress={handleFilterPress}
             />
-          }
-          renderItem={renderItem}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingTop: insets.top + spacing.lg },
-          ]}
-          // TODO Phase 2.11: add empty state UI when data.length === 0
-        />
+            <View style={styles.emptyState}>
+              <ChefHat size={48} color={colors.clay} strokeWidth={1.5} />
+              <View style={{ height: spacing.md }} />
+              <Text role="headline" align="center">Your recipe bank is empty.</Text>
+              <View style={{ height: spacing.xs }} />
+              <Text role="caption" color="oliveDark" align="center">
+                Everything you import shows up here.
+              </Text>
+              <View style={{ height: spacing.lg }} />
+              <Button
+                variant="primary"
+                label="Import a recipe"
+                onPress={() => navigation.navigate('Import')}
+              />
+            </View>
+          </ScrollView>
+        ) : (
+          <FlatList
+            data={mockRecipes}
+            numColumns={2}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <ScreenHeader
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activeFilter={activeFilter}
+                onFilterPress={handleFilterPress}
+              />
+            }
+            renderItem={renderItem}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingTop: insets.top + spacing.lg },
+            ]}
+          />
+        )}
         <FAB
           onPress={() => navigation.navigate('Import')}
           accessibilityLabel="Import a recipe"
@@ -175,21 +183,7 @@ const styles = StyleSheet.create({
   pillsContent: {
     paddingLeft: spacing.lg,
     paddingRight: spacing.lg,
-  },
-  pill: {
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    marginRight: spacing.sm,
-  },
-  pillActive: {
-    backgroundColor: colors.terracotta,
-  },
-  pillInactive: {
-    backgroundColor: colors.oat,
-  },
-  pillText: {
-    fontWeight: '500',
+    gap: spacing.sm,
   },
   columnWrapper: {
     gap: spacing.md,
@@ -197,5 +191,10 @@ const styles = StyleSheet.create({
   cardItem: {
     flex: 1,
     marginBottom: spacing.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
 });

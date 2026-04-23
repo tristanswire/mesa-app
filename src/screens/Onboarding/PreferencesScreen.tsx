@@ -2,47 +2,17 @@ import * as Haptics from 'expo-haptics';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
+import { Pill } from '../../components/Pill';
 import { Text } from '../../components/Text';
-import { colors, radii, spacing } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { ProgressDots } from './ProgressDots';
 
 const FREQUENCY_OPTIONS = ['1-2x a week', '3-5x a week', 'Every day'] as const;
 const DIETARY_OPTIONS = ['Vegetarian', 'Gluten-free', 'Dairy-free', 'None'] as const;
 const SKILL_OPTIONS = ['Weeknight cook', 'Enthusiast', 'Pro'] as const;
-
-function OnboardingPill({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      style={({ pressed }) => [
-        styles.pill,
-        active && styles.pillActive,
-        pressed && { opacity: 0.8 },
-      ]}
-    >
-      <Text
-        role="caption"
-        color={active ? 'cream' : 'ink'}
-        style={styles.pillLabel}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 export function PreferencesScreen() {
   const navigation = useNavigation();
@@ -118,7 +88,7 @@ export function PreferencesScreen() {
           <View style={{ height: spacing.sm }} />
           <View style={styles.pillRow}>
             {FREQUENCY_OPTIONS.map((opt) => (
-              <OnboardingPill
+              <Pill
                 key={opt}
                 label={opt}
                 active={cookingFrequency === opt}
@@ -136,7 +106,7 @@ export function PreferencesScreen() {
           <View style={{ height: spacing.sm }} />
           <View style={styles.pillRow}>
             {DIETARY_OPTIONS.map((opt) => (
-              <OnboardingPill
+              <Pill
                 key={opt}
                 label={opt}
                 active={dietaryPrefs.includes(opt)}
@@ -154,7 +124,7 @@ export function PreferencesScreen() {
           <View style={{ height: spacing.sm }} />
           <View style={styles.pillRow}>
             {SKILL_OPTIONS.map((opt) => (
-              <OnboardingPill
+              <Pill
                 key={opt}
                 label={opt}
                 active={skillLevel === opt}
@@ -199,18 +169,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  // ── Pill ──────────────────────────────────────────────────────────────
-  pill: {
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.oat,
-  },
-  pillActive: {
-    backgroundColor: colors.terracotta,
-  },
-  pillLabel: {
-    fontWeight: '500',
   },
 });

@@ -206,12 +206,14 @@ const styles = StyleSheet.create({
   afterColumn: {
     flex: 1,
   },
-  // Top — Cream, Recipe Detail feel
+  // Top — Cream, Recipe Detail feel; hairline separates it from card's cream bg
   afterTop: {
     flex: 1,
     backgroundColor: colors.cream,
     padding: spacing.base,
     justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: colors.oat,
   },
   afterLabel: {
     letterSpacing: 1,
@@ -241,10 +243,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.ink,
   },
-  // Bottom — Pine, Cook Mode step card fragment
+  // Bottom — Pine, Cook Mode step card fragment; minHeight keeps block from feeling too small
   afterBottom: {
     backgroundColor: colors.pine,
     padding: spacing.base,
+    minHeight: 120,
   },
   stepLabel: {
     fontFamily: 'Inter_600SemiBold',
