@@ -7,13 +7,16 @@ import {
 } from '@expo-google-fonts/inter';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { colors } from './src/theme';
-import { RootNavigator } from './src/navigation/RootNavigator';
+import { ensureGuestUser } from './src/data/user';
+import { useDatabaseMigrations } from './src/db/migrate';
+import { seedMockRecipesIfEmpty } from './src/db/seed';
 import { linking } from './src/navigation/linking';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { colors } from './src/theme';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -23,8 +26,35 @@ export default function App() {
     Inter_700Bold,
   });
 
-  // Hold the cream background while fonts load — no system-font flash
-  if (!fontsLoaded) {
+  const { success: migrationsReady, error: migrationsError } = useDatabaseMigrations();
+  const [seedReady, setSeedReady] = useState(false);
+
+  useEffect(() => {
+    if (!migrationsReady) return;
+    (async () => {
+      await ensureGuestUser();
+      await seedMockRecipesIfEmpty();
+      setSeedReady(true);
+    })();
+  }, [migrationsReady]);
+
+  if (migrationsError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.cream,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+        }}
+      >
+        <Text style={{ textAlign: 'center' }}>{`Database error: ${migrationsError.message}`}</Text>
+      </View>
+    );
+  }
+
+  if (!fontsLoaded || !migrationsReady || !seedReady) {
     return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
   }
 
