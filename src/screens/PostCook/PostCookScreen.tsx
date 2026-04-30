@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Check, Star, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -17,8 +17,8 @@ import { AffiliateCard } from '../../components/AffiliateCard';
 import { IconButton } from '../../components/IconButton';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
+import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
-import { getMockRecipeOrFallback } from '../../mocks/recipes';
 import { colors, radii, shadows, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -29,11 +29,22 @@ export function PostCookScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
 
-  const recipe = getMockRecipeOrFallback(route.params.recipeId);
-  const displayedTools = recipe.tools?.slice(0, 2) ?? [];
+  const { data: recipe, loading } = useRecipeDetail(route.params.recipeId);
 
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (!loading && !recipe) {
+      navigation.popToTop();
+    }
+  }, [loading, recipe, navigation]);
+
+  if (loading || !recipe) {
+    return <View style={{ flex: 1, backgroundColor: colors.pine }} />;
+  }
+
+  const displayedTools = recipe.tools.slice(0, 2);
 
   const handleStarPress = (value: number) => {
     void Haptics.selectionAsync();

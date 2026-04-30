@@ -10,16 +10,19 @@ import { FAB } from '../../components/FAB';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
+import { useHomeData } from '../../data/hooks';
+import type { RecipeListItem } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, spacing } from '../../theme';
-import { mockHomeData } from './mockData';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-// Flip to true to preview the empty state layout (Phase 3 wires real logic)
-const showEmptyState = false;
+// TODO Phase 3: derive greeting from device time-of-day
+const GREETING = 'Good evening';
 
-// TODO Phase 3: loading skeleton while recipes fetch from local DB
+function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
+  return value === 'terracotta' || value === 'olive' ? value : undefined;
+}
 
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -27,6 +30,27 @@ export function HomeScreen() {
   const { width } = useWindowDimensions();
   // 65% width so the adjacent card peeks ~100pt into view
   const cardWidth = width * 0.65;
+
+  const { lastCooked, inYourBank, worthATry, ready } = useHomeData();
+
+  if (!ready) {
+    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  }
+
+  const showEmptyState = !lastCooked && inYourBank.length === 0;
+
+  const renderHorizontalCard = (item: RecipeListItem) => (
+    <View key={item.id} style={[styles.cardWrap, { width: cardWidth }]}>
+      <RecipeCard
+        variant="grid"
+        title={item.title}
+        duration={item.duration}
+        tag={item.tag ?? undefined}
+        tintKey={asTintKey(item.tintKey)}
+        onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
+      />
+    </View>
+  );
 
   return (
     <>
@@ -40,8 +64,7 @@ export function HomeScreen() {
           ]}
         >
           {/* Greeting */}
-          {/* TODO Phase 3: derive greeting from device time-of-day */}
-          <SectionLabel>{mockHomeData.greeting}</SectionLabel>
+          <SectionLabel>{GREETING}</SectionLabel>
 
           {showEmptyState ? (
             /* ── Empty state ────────────────────────────────────────── */
@@ -68,76 +91,61 @@ export function HomeScreen() {
               <Text role="headline">Pick up where you left off.</Text>
 
               {/* Hero — last cooked */}
-              <View style={{ height: spacing.base }} />
-              <RecipeCard
-                variant="hero"
-                label="LAST COOKED"
-                title={mockHomeData.lastCooked.title}
-                duration={mockHomeData.lastCooked.duration}
-                tag={mockHomeData.lastCooked.tag}
-                tintKey={mockHomeData.lastCooked.placeholderTint}
-                ctaLabel="Cook Again →"
-                onPress={() =>
-                  navigation.navigate('RecipeDetail', { recipeId: mockHomeData.lastCooked.id })
-                }
-              />
+              {lastCooked && (
+                <>
+                  <View style={{ height: spacing.base }} />
+                  <RecipeCard
+                    variant="hero"
+                    label="LAST COOKED"
+                    title={lastCooked.title}
+                    duration={lastCooked.duration}
+                    tag={lastCooked.tag ?? undefined}
+                    tintKey={asTintKey(lastCooked.tintKey)}
+                    ctaLabel="Cook Again →"
+                    onPress={() =>
+                      navigation.navigate('RecipeDetail', { recipeId: lastCooked.id })
+                    }
+                  />
+                </>
+              )}
 
               {/* In Your Bank */}
+              {inYourBank.length > 0 && (
+                <>
+                  <View style={{ height: spacing.xl }} />
+                  <SectionLabel>IN YOUR BANK</SectionLabel>
+                  <View style={{ height: spacing.md }} />
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    nestedScrollEnabled
+                    style={styles.horizontalScroll}
+                    contentContainerStyle={styles.horizontalContent}
+                  >
+                    {inYourBank.map(renderHorizontalCard)}
+                  </ScrollView>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Worth a Try */}
+          {worthATry.length > 0 && (
+            <>
               <View style={{ height: spacing.xl }} />
-              <SectionLabel>IN YOUR BANK</SectionLabel>
+              <SectionLabel>WORTH A TRY</SectionLabel>
               <View style={{ height: spacing.md }} />
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 nestedScrollEnabled
-                // Bleed out of parent's horizontal padding so cards reach screen edges
                 style={styles.horizontalScroll}
                 contentContainerStyle={styles.horizontalContent}
               >
-                {mockHomeData.inYourBank.map((item) => (
-                  <View key={item.id} style={[styles.cardWrap, { width: cardWidth }]}>
-                    <RecipeCard
-                      variant="grid"
-                      title={item.title}
-                      duration={item.duration}
-                      tag={item.tag}
-                      tintKey={item.placeholderTint}
-                      onPress={() =>
-                        navigation.navigate('RecipeDetail', { recipeId: item.id })
-                      }
-                    />
-                  </View>
-                ))}
+                {worthATry.map(renderHorizontalCard)}
               </ScrollView>
             </>
           )}
-
-          {/* Worth a Try — always renders */}
-          <View style={{ height: spacing.xl }} />
-          <SectionLabel>WORTH A TRY</SectionLabel>
-          <View style={{ height: spacing.md }} />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-            style={styles.horizontalScroll}
-            contentContainerStyle={styles.horizontalContent}
-          >
-            {mockHomeData.worthATry.map((item) => (
-              <View key={item.id} style={[styles.cardWrap, { width: cardWidth }]}>
-                <RecipeCard
-                  variant="grid"
-                  title={item.title}
-                  duration={item.duration}
-                  tag={item.tag}
-                  tintKey={item.placeholderTint}
-                  onPress={() =>
-                    navigation.navigate('RecipeDetail', { recipeId: item.id })
-                  }
-                />
-              </View>
-            ))}
-          </ScrollView>
 
           {/* Bottom clearance for FAB + tab bar */}
           <View style={{ height: spacing.xxl }} />

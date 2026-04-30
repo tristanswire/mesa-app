@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, MoreVertical } from 'lucide-react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
@@ -11,9 +11,9 @@ import { IconButton } from '../../components/IconButton';
 import { RecipeImagePlaceholder } from '../../components/RecipeImagePlaceholder';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
+import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, shadows, spacing } from '../../theme';
-import { getMockRecipeOrFallback } from '../../mocks/recipes';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'RecipeDetail'>;
@@ -23,8 +23,21 @@ export function RecipeDetailScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
 
-  const recipe = getMockRecipeOrFallback(route.params.recipeId);
+  const { data: recipe, loading, error } = useRecipeDetail(route.params.recipeId);
+
+  // Phase 3.11 will add a real error state. For now, route back if a phantom ID lands here.
+  useEffect(() => {
+    if (!loading && (error || !recipe)) {
+      navigation.goBack();
+    }
+  }, [loading, error, recipe, navigation]);
+
+  if (loading || !recipe) {
+    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  }
+
   const previewIngredients = recipe.ingredients.slice(0, 4);
+  const tintKey = recipe.tintKey ?? undefined;
 
   return (
     <>
@@ -36,7 +49,7 @@ export function RecipeDetailScreen() {
       >
         {/* ── Hero image ─────────────────────────────────────────────── */}
         <View style={styles.hero}>
-          <RecipeImagePlaceholder tintKey={recipe.tintKey} />
+          <RecipeImagePlaceholder tintKey={tintKey} />
 
           {/* Overlay: back | title chip | overflow */}
           <View
@@ -81,7 +94,7 @@ export function RecipeDetailScreen() {
         {/* ── Metadata ───────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text role="caption" color="oliveDark">
-            {recipe.duration} · {recipe.servings} servings · {recipe.tag}
+            {recipe.duration} · {recipe.servings} servings{recipe.tag ? ` · ${recipe.tag}` : ''}
           </Text>
         </View>
 

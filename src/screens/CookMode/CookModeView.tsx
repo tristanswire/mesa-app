@@ -13,11 +13,13 @@ import { IngredientChip } from '../../components/IngredientChip';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { TimerToken } from '../../components/TimerToken';
+import { useRecipeDetail } from '../../data/hooks';
+import type { RecipeDetail } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
-import { getMockRecipeOrFallback } from '../../mocks/recipes';
-import type { MockStep } from '../../mocks/recipes';
 import type { ColorToken } from '../../theme';
 import { colors, spacing } from '../../theme';
+
+type RecipeStep = RecipeDetail['steps'][number];
 
 type CookTheme = {
   background: string;
@@ -59,7 +61,7 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
   },
 };
 
-function stepToPlainText(step: MockStep): string {
+function stepToPlainText(step: RecipeStep): string {
   return step.segments.map((seg) => {
     if (seg.type === 'text') return seg.content;
     if (seg.type === 'ingredient') {
@@ -80,11 +82,15 @@ export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookMode
   const insets = useSafeAreaInsets();
   const tc = THEMES[theme];
 
-  const recipe = getMockRecipeOrFallback(recipeId);
-  const steps = recipe.steps;
+  const { data: recipe, loading } = useRecipeDetail(recipeId);
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
 
+  if (loading || !recipe) {
+    return <View style={[styles.root, { backgroundColor: tc.background }]} />;
+  }
+
+  const steps = recipe.steps;
   const currentStep = steps[stepIndex];
   const nextStep = steps[stepIndex + 1];
   const isFirstStep = stepIndex === 0;

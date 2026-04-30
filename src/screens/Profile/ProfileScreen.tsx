@@ -15,6 +15,7 @@ import { colors, radii, spacing } from '../../theme';
 type MainNav = NativeStackNavigationProp<MainStackParamList>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
+// TODO Phase 3.8: derive stats from cooks table count + collections + this-week filter
 const MOCK_STATS = {
   name: 'Tristan',
   tagline: 'Home cook · 24 recipes saved',

@@ -2,28 +2,37 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChefHat } from 'lucide-react-native';
+import { ChefHat, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search } from 'lucide-react-native';
 import { Button } from '../../components/Button';
 import { FAB } from '../../components/FAB';
 import { Input } from '../../components/Input';
 import { Pill } from '../../components/Pill';
 import { RecipeCard } from '../../components/RecipeCard';
 import { Text } from '../../components/Text';
+import { useRecipesList } from '../../data/hooks';
+import type { RecipeListItem } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, spacing } from '../../theme';
-import { mockFilters, mockRecipes } from './mockData';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
-type Recipe = (typeof mockRecipes)[number];
 
-// Flip to true to preview the empty state layout (Phase 3 wires real logic)
-const showEmptyState = false;
+const FILTERS = [
+  'All',
+  'Weeknight',
+  'Quick',
+  'Vegetarian',
+  'Dessert',
+  'Side',
+  'Breakfast',
+  'Slow-cooker',
+];
 
-// TODO Phase 3: loading skeleton while recipes fetch from local DB
+function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
+  return value === 'terracotta' || value === 'olive' ? value : undefined;
+}
 
 type HeaderProps = {
   searchQuery: string;
@@ -57,7 +66,7 @@ function ScreenHeader({
         style={styles.pillsScroll}
         contentContainerStyle={styles.pillsContent}
       >
-        {mockFilters.map((filter) => (
+        {FILTERS.map((filter) => (
           <Pill
             key={filter}
             label={filter}
@@ -80,19 +89,27 @@ export function RecipesScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { data: recipes, ready } = useRecipesList();
+
   const handleFilterPress = async (filter: string) => {
     await Haptics.selectionAsync();
     setActiveFilter(filter);
   };
 
-  const renderItem = ({ item }: { item: Recipe }) => (
+  if (!ready) {
+    return <View style={[styles.root, { backgroundColor: colors.cream }]} />;
+  }
+
+  const showEmptyState = recipes.length === 0;
+
+  const renderItem = ({ item }: { item: RecipeListItem }) => (
     <View style={styles.cardItem}>
       <RecipeCard
         variant="grid"
         title={item.title}
         duration={item.duration}
-        tag={item.tag}
-        tintKey={item.tintKey}
+        tag={item.tag ?? undefined}
+        tintKey={asTintKey(item.tintKey)}
         onPress={() =>
           navigation.navigate('RecipeDetail', { recipeId: item.id })
         }
@@ -136,7 +153,7 @@ export function RecipesScreen() {
           </ScrollView>
         ) : (
           <FlatList
-            data={mockRecipes}
+            data={recipes}
             numColumns={2}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}

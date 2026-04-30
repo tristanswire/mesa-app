@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, Flame } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AffiliateCard } from '../../components/AffiliateCard';
@@ -12,8 +12,8 @@ import { PrepChecklistItem } from '../../components/PrepChecklistItem';
 import { ProgressBar } from '../../components/ProgressBar';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
+import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
-import { getMockRecipeOrFallback } from '../../mocks/recipes';
 import { colors, radii, shadows, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -24,15 +24,32 @@ export function PrepModeScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
 
-  const recipe = getMockRecipeOrFallback(route.params.recipeId);
-  const prepItems = recipe.prepItems ?? [];
-  const tools = recipe.tools ?? [];
+  const { data: recipe, loading } = useRecipeDetail(route.params.recipeId);
 
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(
-      prepItems.filter((i) => i.defaultChecked).map((i) => [i.id, true]),
-    ),
-  );
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  // Re-initialize the checked state when navigating between recipes — keyed on recipe id
+  // so PrepMode resets cleanly across screens.
+  useEffect(() => {
+    if (!recipe) return;
+    const initial = Object.fromEntries(
+      recipe.prepItems.filter((i) => i.defaultChecked).map((i) => [i.id, true]),
+    );
+    setCheckedItems(initial);
+  }, [recipe?.id]);
+
+  useEffect(() => {
+    if (!loading && !recipe) {
+      navigation.goBack();
+    }
+  }, [loading, recipe, navigation]);
+
+  if (loading || !recipe) {
+    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+  }
+
+  const prepItems = recipe.prepItems;
+  const tools = recipe.tools;
 
   const completedCount = Object.keys(checkedItems).length;
   const totalCount = prepItems.length;
@@ -122,7 +139,7 @@ export function PrepModeScreen() {
               <PrepChecklistItem
                 key={item.id}
                 label={item.label}
-                duration={item.duration}
+                duration={item.duration ?? undefined}
                 checked={!!checkedItems[item.id]}
                 onToggle={() => handleToggle(item.id)}
               />
