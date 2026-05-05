@@ -55,10 +55,9 @@ function formatTime(seconds: number): string {
 const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: radii.sm,
-    alignSelf: 'flex-start',
-    transform: [{ translateY: 8 }],
+    alignSelf: 'center',
   },
   label: {
     fontFamily: typography.cookModeIngredientChip.fontFamily,

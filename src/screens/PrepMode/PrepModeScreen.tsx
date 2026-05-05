@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AffiliateCard } from '../../components/AffiliateCard';
+import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { PrepChecklistItem } from '../../components/PrepChecklistItem';
 import { ProgressBar } from '../../components/ProgressBar';
@@ -65,14 +66,14 @@ export function PrepModeScreen() {
   };
 
   return (
-    <>
+    <View style={styles.root}>
       <StatusBar style="dark" />
       <ScrollView
-        style={styles.root}
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + spacing.base, paddingBottom: insets.bottom + spacing.xxl },
+          { paddingTop: insets.top + spacing.base, paddingBottom: spacing.xxl },
         ]}
       >
         {/* ── Header ─────────────────────────────────────────────────── */}
@@ -176,7 +177,23 @@ export function PrepModeScreen() {
         )}
 
       </ScrollView>
-    </>
+
+      {/* ── Persistent bottom CTA ──────────────────────────────────── */}
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg },
+        ]}
+      >
+        <Button
+          variant="primary"
+          label="Begin Cooking →"
+          onPress={() => {
+            navigation.replace('CookMode', { recipeId: recipe.id });
+          }}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -185,8 +202,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.cream,
   },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     paddingHorizontal: 0,
+  },
+  bottomBar: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.md,
+    backgroundColor: colors.cream,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.oat,
   },
   paddingH: {
     paddingHorizontal: spacing.lg,

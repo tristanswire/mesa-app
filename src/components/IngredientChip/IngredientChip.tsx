@@ -11,9 +11,9 @@ export function IngredientChip({ label, theme = 'dark' }: IngredientChipProps) {
   const fg = theme === 'dark' ? colors.pine : colors.ink;
 
   return (
-    // View-in-Text: on iOS, a <View> as a direct child of <Text> renders inline at the
-    // text baseline. Views always honor borderRadius + padding — unlike nested <Text>
-    // nodes where borderRadius clipping is inconsistent across RN versions.
+    // View-in-Text: on iOS, a <View> as a direct child of <Text> renders inline and
+    // RN centers it on the line height when no transform is applied. alignSelf:'center'
+    // keeps the chip baseline-aligned with surrounding text across line wraps.
     <View style={[styles.chip, { backgroundColor: colors.oat }]}>
       <RNText style={[styles.label, { color: fg }]}>{label}</RNText>
     </View>
@@ -23,10 +23,9 @@ export function IngredientChip({ label, theme = 'dark' }: IngredientChipProps) {
 const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: radii.sm,
-    alignSelf: 'flex-start',
-    transform: [{ translateY: 8 }],
+    alignSelf: 'center',
   },
   label: {
     fontFamily: typography.cookModeIngredientChip.fontFamily,
