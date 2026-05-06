@@ -16,6 +16,7 @@ export interface RecipeCardProps {
   duration: string;
   tag?: string;
   imageSource?: ImageSourcePropType;
+  imageUrl?: string | null;
   tintKey?: 'terracotta' | 'olive';
   variant: 'hero' | 'grid';
   label?: string;
@@ -28,6 +29,7 @@ export function RecipeCard({
   duration,
   tag,
   imageSource,
+  imageUrl,
   tintKey,
   variant,
   label,
@@ -35,6 +37,7 @@ export function RecipeCard({
   ctaLabel,
 }: RecipeCardProps) {
   const isHero = variant === 'hero';
+  const resolvedImageSource = imageSource ?? (imageUrl ? { uri: imageUrl } : undefined);
 
   return (
     <Pressable
@@ -48,10 +51,14 @@ export function RecipeCard({
       ]}
     >
       {/* Image / Placeholder */}
-      {imageSource ? (
+      {resolvedImageSource ? (
         <Image
-          source={imageSource}
-          style={[styles.image, isHero ? styles.heroImage : styles.gridImage]}
+          source={resolvedImageSource}
+          style={[
+            styles.image,
+            isHero ? styles.heroImage : styles.gridImage,
+            { aspectRatio: isHero ? 16 / 9 : 1 },
+          ]}
           resizeMode="cover"
         />
       ) : (

@@ -1,21 +1,23 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { Camera, ChevronLeft, Link, Pencil } from 'lucide-react-native';
+import { Camera, ChevronLeft, Link, Pencil, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button } from '../../components/Button';
 import { ClipboardBanner } from '../../components/ClipboardBanner';
 import { IconButton } from '../../components/IconButton';
 import { Input } from '../../components/Input';
 import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
+import { importRecipeFromUrl } from '../../data/import';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, spacing } from '../../theme';
+import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-const MOCK_CLIPBOARD_URL = 'nytimes.com/cooking/recipes/harissa-roasted-carrots';
+const MOCK_CLIPBOARD_URL = 'https://cooking.nytimes.com/recipes/1024118-sheet-pan-harissa-chicken-with-leeks-and-yogurt';
 
 export function ImportScreen() {
   const navigation = useNavigation<Nav>();
@@ -23,95 +25,159 @@ export function ImportScreen() {
 
   const [url, setUrl] = useState('');
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const showBanner = !bannerDismissed;
+
+  const handleImport = async (urlToImport: string) => {
+    if (!urlToImport.trim() || isImporting) return;
+    setIsImporting(true);
+    setImportError(null);
+    const result = await importRecipeFromUrl(urlToImport.trim());
+    setIsImporting(false);
+    if (result.success) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'Tabs' },
+            { name: 'RecipeDetail', params: { recipeId: result.recipeId } },
+          ],
+        })
+      );
+    } else {
+      setImportError(result.error);
+    }
+  };
 
   return (
     <>
       <StatusBar style="dark" />
-      <ScrollView
-        style={styles.root}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl },
-        ]}
-      >
-        {/* ── Header row ───────────────────────────────────────────── */}
-        <View style={styles.header}>
-          <View style={styles.headerSide}>
-            <IconButton
-              icon={ChevronLeft}
-              onPress={() => navigation.goBack()}
-              accessibilityLabel="Close import"
-              size="md"
+      <View style={styles.root}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl },
+          ]}
+        >
+          {/* ── Header row ───────────────────────────────────────────── */}
+          <View style={styles.header}>
+            <View style={styles.headerSide}>
+              <IconButton
+                icon={ChevronLeft}
+                onPress={() => navigation.goBack()}
+                accessibilityLabel="Close import"
+                size="md"
+              />
+            </View>
+            <Text role="body" style={styles.headerTitle}>Import a Recipe</Text>
+            <View style={styles.headerSide} />
+          </View>
+
+          {/* ── Subheadline ──────────────────────────────────────────── */}
+          <View style={{ height: spacing.base }} />
+          <Text role="caption" color="oliveDark" align="center" style={styles.subheadline}>
+            Paste a link, snap a photo, or type it in.
+          </Text>
+
+          {/* ── Clipboard banner ─────────────────────────────────────── */}
+          {showBanner && (
+            <View style={[styles.paddingH, { marginTop: spacing.lg }]}>
+              <ClipboardBanner
+                url={MOCK_CLIPBOARD_URL}
+                onImport={() => handleImport(MOCK_CLIPBOARD_URL)}
+                onDismiss={() => setBannerDismissed(true)}
+              />
+            </View>
+          )}
+
+          {/* ── URL input ────────────────────────────────────────────── */}
+          <View style={[styles.paddingH, { marginTop: spacing.md }]}>
+            <Input
+              value={url}
+              onChangeText={setUrl}
+              placeholder="Paste a recipe link…"
+              icon={Link}
+              keyboardType="url"
+              returnKeyType="go"
+              accessibilityLabel="Recipe URL"
+            />
+            <View style={{ height: spacing.md }} />
+            <Button
+              variant="primary"
+              label="Import"
+              onPress={() => handleImport(url)}
+              disabled={!url.trim() || isImporting}
             />
           </View>
-          <Text role="body" style={styles.headerTitle}>Import a Recipe</Text>
-          <View style={styles.headerSide} />
-        </View>
 
-        {/* ── Subheadline ──────────────────────────────────────────── */}
-        <View style={{ height: spacing.base }} />
-        <Text role="caption" color="oliveDark" align="center" style={styles.subheadline}>
-          Paste a link, snap a photo, or type it in.
-        </Text>
+          {/* ── Error sheet ──────────────────────────────────────────── */}
+          {importError && (
+            <View style={[styles.paddingH, { marginTop: spacing.md }]}>
+              <View style={styles.errorSheet}>
+                <View style={styles.errorTextStack}>
+                  <Text role="body" style={styles.errorTitle}>{importError}</Text>
+                  <Text role="caption" color="oliveDark" style={{ marginTop: spacing.xs }}>
+                    Try a different link or use Enter Manually.
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setImportError(null)}
+                  style={styles.errorDismiss}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss error"
+                >
+                  <X size={18} color={colors.oliveDark} strokeWidth={1.5} />
+                </Pressable>
+              </View>
+            </View>
+          )}
 
-        {/* ── Clipboard banner ─────────────────────────────────────── */}
-        {showBanner && (
-          <View style={[styles.paddingH, { marginTop: spacing.lg }]}>
-            <ClipboardBanner
-              url={MOCK_CLIPBOARD_URL}
-              onImport={() => { /* TODO Phase 3: import from detected URL */ }}
-              onDismiss={() => setBannerDismissed(true)}
+          {/* ── OR divider ───────────────────────────────────────────── */}
+          <View style={styles.orDivider}>
+            <View style={styles.orLine} />
+            <Text role="caption" color="oliveDark" style={styles.orText}>OR</Text>
+            <View style={styles.orLine} />
+          </View>
+
+          {/* ── Option rows ──────────────────────────────────────────── */}
+          <View style={styles.paddingH}>
+            <SettingRow
+              variant="card"
+              icon={Camera}
+              label="Take a Photo"
+              onPress={() => { /* TODO Phase 3: launch camera */ }}
             />
+            <View style={{ height: spacing.md }} />
+            <SettingRow
+              variant="card"
+              icon={Pencil}
+              label="Enter Manually"
+              onPress={() => { /* TODO Phase 3: open manual entry */ }}
+            />
+          </View>
+
+          {/* ── Supported sites footer ───────────────────────────────── */}
+          <View style={{ height: spacing.xl }} />
+          <Text role="caption" color="terracotta" align="center">
+            Mesa supports most recipe sites.
+          </Text>
+        </ScrollView>
+
+        {/* ── Loading overlay ────────────────────────────────────────── */}
+        {isImporting && (
+          <View style={styles.loadingOverlay} pointerEvents="auto">
+            <ActivityIndicator size="large" color={colors.terracotta} />
+            <Text role="caption" color="oliveDark" style={{ marginTop: spacing.md }}>
+              Reading the recipe…
+            </Text>
           </View>
         )}
-
-        {/* ── URL input ────────────────────────────────────────────── */}
-        <View style={[styles.paddingH, { marginTop: spacing.md }]}>
-          <Input
-            value={url}
-            onChangeText={setUrl}
-            placeholder="Paste a recipe link…"
-            icon={Link}
-            keyboardType="url"
-            returnKeyType="go"
-            accessibilityLabel="Recipe URL"
-          />
-        </View>
-
-        {/* ── OR divider ───────────────────────────────────────────── */}
-        <View style={styles.orDivider}>
-          <View style={styles.orLine} />
-          <Text role="caption" color="oliveDark" style={styles.orText}>OR</Text>
-          <View style={styles.orLine} />
-        </View>
-
-        {/* ── Option rows ──────────────────────────────────────────── */}
-        <View style={styles.paddingH}>
-          <SettingRow
-            variant="card"
-            icon={Camera}
-            label="Take a Photo"
-            onPress={() => { /* TODO Phase 3: launch camera */ }}
-          />
-          <View style={{ height: spacing.md }} />
-          <SettingRow
-            variant="card"
-            icon={Pencil}
-            label="Enter Manually"
-            onPress={() => { /* TODO Phase 3: open manual entry */ }}
-          />
-        </View>
-
-        {/* ── Supported sites footer ───────────────────────────────── */}
-        <View style={{ height: spacing.xl }} />
-        <Text role="caption" color="terracotta" align="center">
-          Mesa supports most recipe sites.
-        </Text>
-      </ScrollView>
+      </View>
     </>
   );
 }
@@ -127,7 +193,6 @@ const styles = StyleSheet.create({
   paddingH: {
     paddingHorizontal: spacing.lg,
   },
-  // ── Header ──────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,7 +211,6 @@ const styles = StyleSheet.create({
   subheadline: {
     paddingHorizontal: spacing.lg,
   },
-  // ── OR divider ──────────────────────────────────────────────────────
   orDivider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -161,5 +225,29 @@ const styles = StyleSheet.create({
   },
   orText: {
     letterSpacing: 1,
+  },
+  errorSheet: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.oat,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  errorTextStack: {
+    flex: 1,
+  },
+  errorTitle: {
+    fontWeight: '600',
+  },
+  errorDismiss: {
+    padding: spacing.xs,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(247, 242, 234, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 });

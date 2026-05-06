@@ -23,6 +23,7 @@ export function useRecipesList() {
       duration: recipes.duration,
       tag: recipes.tag,
       tintKey: recipes.tintKey,
+      imageUrl: recipes.imageUrl,
     })
     .from(recipes)
     .where(eq(recipes.userId, userId ?? NO_USER))

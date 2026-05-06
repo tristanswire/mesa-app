@@ -20,6 +20,7 @@ export const recipes = sqliteTable('recipes', {
   tag: text('tag'),
   tintKey: text('tint_key'),
   sourceUrl: text('source_url'),
+  imageUrl: text('image_url'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   syncedAt: text('synced_at'),

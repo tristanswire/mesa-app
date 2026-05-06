@@ -17,6 +17,7 @@ export type RecipeListItem = {
   duration: string;
   tag: string | null;
   tintKey: string | null;
+  imageUrl: string | null;
 };
 
 export type RecipeDetail = {
@@ -26,6 +27,7 @@ export type RecipeDetail = {
   servings: number;
   tag: string | null;
   tintKey: 'terracotta' | 'olive' | null;
+  imageUrl: string | null;
   ingredients: { id: string; amount: string; name: string; prep: string | null }[];
   steps: {
     id: string;
@@ -47,6 +49,7 @@ export async function listRecipes(): Promise<RecipeListItem[]> {
       duration: recipes.duration,
       tag: recipes.tag,
       tintKey: recipes.tintKey,
+      imageUrl: recipes.imageUrl,
     })
     .from(recipes)
     .where(eq(recipes.userId, userId))
@@ -81,6 +84,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
     servings: result.servings,
     tag: result.tag,
     tintKey: result.tintKey as 'terracotta' | 'olive' | null,
+    imageUrl: result.imageUrl,
     ingredients: result.ingredients.map((ing) => ({
       id: ing.id,
       amount: ing.amount,

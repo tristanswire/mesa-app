@@ -47,6 +47,7 @@ export function HomeScreen() {
         duration={item.duration}
         tag={item.tag ?? undefined}
         tintKey={asTintKey(item.tintKey)}
+        imageUrl={item.imageUrl}
         onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
       />
     </View>
@@ -101,6 +102,7 @@ export function HomeScreen() {
                     duration={lastCooked.duration}
                     tag={lastCooked.tag ?? undefined}
                     tintKey={asTintKey(lastCooked.tintKey)}
+                    imageUrl={lastCooked.imageUrl}
                     ctaLabel="Cook Again →"
                     onPress={() =>
                       navigation.navigate('RecipeDetail', { recipeId: lastCooked.id })

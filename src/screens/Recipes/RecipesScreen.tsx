@@ -110,6 +110,7 @@ export function RecipesScreen() {
         duration={item.duration}
         tag={item.tag ?? undefined}
         tintKey={asTintKey(item.tintKey)}
+        imageUrl={item.imageUrl}
         onPress={() =>
           navigation.navigate('RecipeDetail', { recipeId: item.id })
         }

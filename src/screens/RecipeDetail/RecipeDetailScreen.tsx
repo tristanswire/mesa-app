@@ -4,7 +4,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, MoreVertical } from 'lucide-react-native';
 import React, { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
@@ -49,7 +49,15 @@ export function RecipeDetailScreen() {
       >
         {/* ── Hero image ─────────────────────────────────────────────── */}
         <View style={styles.hero}>
-          <RecipeImagePlaceholder tintKey={tintKey} />
+          {recipe.imageUrl ? (
+            <Image
+              source={{ uri: recipe.imageUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : (
+            <RecipeImagePlaceholder tintKey={tintKey} />
+          )}
 
           {/* Overlay: back | title chip | overflow */}
           <View
