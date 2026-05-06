@@ -12,12 +12,11 @@ import { Input } from '../../components/Input';
 import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
 import { importRecipeFromUrl } from '../../data/import';
+import { useClipboardUrl } from '../../hooks/useClipboardUrl';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
-
-const MOCK_CLIPBOARD_URL = 'https://cooking.nytimes.com/recipes/1024118-sheet-pan-harissa-chicken-with-leeks-and-yogurt';
 
 export function ImportScreen() {
   const navigation = useNavigation<Nav>();
@@ -28,7 +27,9 @@ export function ImportScreen() {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
-  const showBanner = !bannerDismissed;
+  const { url: clipboardUrl, loaded: clipboardLoaded } = useClipboardUrl();
+  const showBanner =
+    clipboardLoaded && !!clipboardUrl && !bannerDismissed && !isImporting && !importError;
 
   const handleImport = async (urlToImport: string) => {
     if (!urlToImport.trim() || isImporting) return;
@@ -84,11 +85,11 @@ export function ImportScreen() {
           </Text>
 
           {/* ── Clipboard banner ─────────────────────────────────────── */}
-          {showBanner && (
+          {showBanner && clipboardUrl && (
             <View style={[styles.paddingH, { marginTop: spacing.lg }]}>
               <ClipboardBanner
-                url={MOCK_CLIPBOARD_URL}
-                onImport={() => handleImport(MOCK_CLIPBOARD_URL)}
+                url={clipboardUrl}
+                onImport={() => handleImport(clipboardUrl)}
                 onDismiss={() => setBannerDismissed(true)}
               />
             </View>
