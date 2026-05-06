@@ -34,6 +34,51 @@ function normalizeUrl(input: string): string | null {
   }
 }
 
+function handleFetchFailure(status: number, url: string): Response {
+  let domain = '';
+  try {
+    domain = new URL(url).hostname;
+  } catch {
+    domain = '<unknown>';
+  }
+
+  console.log(`[import-recipe] fetch-blocked status=${status} domain=${domain}`);
+
+  if (status === 403 || status === 401) {
+    return jsonResponse({
+      success: false,
+      error:
+        "This site doesn't allow recipe imports right now. Try saving the recipe by pasting the text into the manual entry option.",
+    });
+  }
+
+  if (status === 404) {
+    return jsonResponse({
+      success: false,
+      error: "That page doesn't exist. Check the link and try again.",
+    });
+  }
+
+  if (status === 429) {
+    return jsonResponse({
+      success: false,
+      error: 'This site is temporarily rate-limited. Try again in a few minutes.',
+    });
+  }
+
+  if (status >= 500) {
+    return jsonResponse({
+      success: false,
+      error: 'The recipe site is having trouble right now. Try again in a few minutes.',
+    });
+  }
+
+  return jsonResponse({
+    success: false,
+    error: `Could not fetch the page (HTTP ${status}). The site may be temporarily unavailable.`,
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -58,10 +103,7 @@ serve(async (req) => {
     });
 
     if (!pageResponse.ok) {
-      return jsonResponse({
-        success: false,
-        error: `Could not fetch the page (HTTP ${pageResponse.status}).`,
-      });
+      return handleFetchFailure(pageResponse.status, normalizedUrl);
     }
 
     const html = await pageResponse.text();
