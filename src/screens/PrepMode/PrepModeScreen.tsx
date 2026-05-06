@@ -189,7 +189,7 @@ export function PrepModeScreen() {
           variant="primary"
           label="Begin Cooking →"
           onPress={() => {
-            navigation.replace('CookMode', { recipeId: recipe.id });
+            navigation.push('CookMode', { recipeId: recipe.id });
           }}
         />
       </View>
