@@ -32,7 +32,21 @@ Step segments concatenate to the full instruction:
 - {"type":"text","content":" until fragrant."}
 
 Each step's "ingredients" array: [{"id":"ing-1","display":"2 tbsp olive oil"}]
+
+CHIP DISPLAY RULES (critical):
+- Each ingredient chip "display" must be SHORT — max 25 characters
+- Format: amount + simple ingredient name only (e.g., "2 tbsp olive oil", "1 cup flour", "5 large eggs")
+- DO NOT include detailed descriptions, prep notes, or qualifiers in chip display
+- Example: ingredient is "8 (3/4-inch-thick) slices brioche, country-style white bread or baguette, preferably slightly stale" → chip display should be "8 slices brioche"
+- Example: ingredient is "3/4 cup sweet wine, like Malaga or cream sherry" → chip display should be "3/4 cup sweet wine"
+- The full ingredient details belong in the top-level "ingredients" array — not in the chip display
+
 Each step's "timers" array: [{"id":"timer-1","label":"bake 18 min","durationSeconds":1080}]
+
+TIMER LABEL RULES:
+- Timer label must be SHORT — max 20 characters
+- Format: action + duration (e.g., "bake 18 min", "simmer 30 min", "rest 10 min")
+- The label reads naturally inside the sentence
 
 CONSTRAINTS:
 - Maximum 4 prep items
@@ -78,6 +92,14 @@ function extractJson(text: string): string | null {
   }
 
   return null;
+}
+
+function stripNoise(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
 }
 
 function normalizeUrl(input: string): string | null {
@@ -130,7 +152,8 @@ serve(async (req) => {
     }
 
     const html = await pageResponse.text();
-    const truncated = html.slice(0, 50000);
+    const cleaned = stripNoise(html);
+    const truncated = cleaned.slice(0, 80000);
 
     const anthropic = new Anthropic({
       apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,

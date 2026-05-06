@@ -15,7 +15,13 @@ export function IngredientChip({ label, theme = 'dark' }: IngredientChipProps) {
     // RN centers it on the line height when no transform is applied. alignSelf:'center'
     // keeps the chip baseline-aligned with surrounding text across line wraps.
     <View style={[styles.chip, { backgroundColor: colors.oat }]}>
-      <RNText style={[styles.label, { color: fg }]}>{label}</RNText>
+      <RNText
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        style={[styles.label, { color: fg }]}
+      >
+        {label}
+      </RNText>
     </View>
   );
 }
@@ -26,6 +32,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radii.sm,
     alignSelf: 'center',
+    maxWidth: '60%',
   },
   label: {
     fontFamily: typography.cookModeIngredientChip.fontFamily,

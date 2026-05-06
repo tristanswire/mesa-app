@@ -39,7 +39,11 @@ export function TimerToken({
         pressed && styles.pressed,
       ]}
     >
-      <RNText style={[styles.label, { color: textColor }]}>
+      <RNText
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        style={[styles.label, { color: textColor }]}
+      >
         {TIMER_GLYPH}{displayLabel}
       </RNText>
     </Pressable>
@@ -58,6 +62,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radii.sm,
     alignSelf: 'center',
+    maxWidth: '60%',
   },
   label: {
     fontFamily: typography.cookModeIngredientChip.fontFamily,

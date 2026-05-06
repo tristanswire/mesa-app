@@ -74,9 +74,9 @@ export const typography: Record<TypographyRole, TypographyStyle> = {
   /** Cook Mode step instructions — glanceable from across the kitchen */
   cookModeBody: {
     fontFamily: Inter.medium,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '500',
-    lineHeight: 33, // 1.5 × 22
+    lineHeight: 30, // 1.5 × 20 — research floor for arm's-length kitchen reading
     color: 'cream',
   },
   /** Cook Mode step counter — oversized for at-a-glance progress; tinted on pine */
