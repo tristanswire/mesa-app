@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, MoreVertical } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AffiliateCard } from '../../components/AffiliateCard';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { RecipeImagePlaceholder } from '../../components/RecipeImagePlaceholder';
@@ -142,6 +143,31 @@ export function RecipeDetailScreen() {
           </Pressable>
         </View>
 
+        {/* ── Tools ──────────────────────────────────────────────────── */}
+        {recipe.tools.length > 0 && (
+          <View style={[styles.section, styles.toolsSection]}>
+            <SectionLabel>TOOLS</SectionLabel>
+            <View style={{ height: spacing.md }} />
+            <View style={styles.toolsList}>
+              {recipe.tools.map((tool) => (
+                <AffiliateCard
+                  key={tool.id}
+                  productName={tool.name}
+                  price={tool.price}
+                  partner={tool.partner}
+                  toolId={tool.id}
+                  recipeId={recipe.id}
+                  affiliateUrl={tool.affiliateUrl}
+                  source="recipe_detail"
+                />
+              ))}
+            </View>
+            <Text role="caption" color="oliveDark" align="center" style={styles.disclosure}>
+              Affiliate links help keep Mesa ad-free.
+            </Text>
+          </View>
+        )}
+
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
     </>
@@ -190,6 +216,16 @@ const styles = StyleSheet.create({
   },
   ingredientsSection: {
     paddingTop: spacing.xl,
+  },
+  toolsSection: {
+    paddingTop: spacing.xl,
+  },
+  toolsList: {
+    gap: spacing.md,
+  },
+  disclosure: {
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   ingredientRow: {
     flexDirection: 'row',

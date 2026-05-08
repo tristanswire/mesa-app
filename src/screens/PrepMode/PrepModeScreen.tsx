@@ -220,11 +220,19 @@ export function PrepModeScreen() {
                     productName={tool.name}
                     price={tool.price}
                     partner={tool.partner}
-                    onPress={() => {}}
+                    toolId={tool.id}
+                    recipeId={recipe.id}
+                    affiliateUrl={tool.affiliateUrl}
+                    source="prep_mode"
                   />
                 </View>
               ))}
             </ScrollView>
+            <View style={[styles.paddingH, styles.disclosureWrap]}>
+              <Text role="caption" color="oliveDark" align="center">
+                Affiliate links help keep Mesa ad-free.
+              </Text>
+            </View>
           </>
         )}
 
@@ -321,6 +329,9 @@ const styles = StyleSheet.create({
   },
   toolCardWrap: {
     width: 280,
+  },
+  disclosureWrap: {
+    marginTop: spacing.md,
   },
   // ── Empty state ─────────────────────────────────────────────────────
   emptyState: {

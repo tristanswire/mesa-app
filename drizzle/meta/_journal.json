@@ -22,6 +22,13 @@
       "when": 1778093105689,
       "tag": "0002_marvelous_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778252088074,
+      "tag": "0003_fast_ultron",
+      "breakpoints": true
     }
   ]
 }

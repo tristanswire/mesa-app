@@ -98,6 +98,23 @@ export const cookPrepState = sqliteTable('cook_prep_state', {
   checked: integer('checked', { mode: 'boolean' }).notNull().default(false),
 });
 
+export const clicks = sqliteTable('clicks', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  toolId: text('tool_id')
+    .notNull()
+    .references(() => tools.id, { onDelete: 'cascade' }),
+  recipeId: text('recipe_id')
+    .notNull()
+    .references(() => recipes.id, { onDelete: 'cascade' }),
+  partner: text('partner').notNull(),
+  source: text('source').notNull(),
+  clickedAt: text('clicked_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  syncedAt: text('synced_at'),
+});
+
 export const userPreferences = sqliteTable('user_preferences', {
   userId: text('user_id')
     .primaryKey()

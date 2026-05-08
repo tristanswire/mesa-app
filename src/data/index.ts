@@ -5,3 +5,5 @@ export * from './cooks';
 export * from './ratings';
 export * from './import';
 export * from './preferences';
+export * from './clicks';
+export * from './affiliate';

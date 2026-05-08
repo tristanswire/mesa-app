@@ -37,7 +37,13 @@ export type RecipeDetail = {
     timers: StepTimer[];
   }[];
   prepItems: { id: string; label: string; duration: string | null; defaultChecked: boolean }[];
-  tools: { id: string; name: string; price: string; partner: string }[];
+  tools: {
+    id: string;
+    name: string;
+    price: string;
+    partner: string;
+    affiliateUrl: string | null;
+  }[];
 };
 
 export async function listRecipes(): Promise<RecipeListItem[]> {
@@ -103,6 +109,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
       name: t.name,
       price: t.price,
       partner: t.partner,
+      affiliateUrl: t.affiliateUrl,
     })),
   };
 }

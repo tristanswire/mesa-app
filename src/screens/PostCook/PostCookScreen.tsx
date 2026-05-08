@@ -198,7 +198,10 @@ export function PostCookScreen() {
                     price={tool.price}
                     partner={tool.partner}
                     theme="dark"
-                    onPress={() => {}}
+                    toolId={tool.id}
+                    recipeId={recipe.id}
+                    affiliateUrl={tool.affiliateUrl}
+                    source="post_cook"
                   />
                 </View>
               ))}

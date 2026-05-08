@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  clicks,
   cookPrepState,
   cooks,
   ingredients,
@@ -14,6 +15,7 @@ import {
 export const usersRelations = relations(users, ({ many, one }) => ({
   recipes: many(recipes),
   cooks: many(cooks),
+  clicks: many(clicks),
   preferences: one(userPreferences),
 }));
 
@@ -24,6 +26,7 @@ export const recipesRelations = relations(recipes, ({ one, many }) => ({
   prepItems: many(prepItems),
   tools: many(tools),
   cooks: many(cooks),
+  clicks: many(clicks),
 }));
 
 export const ingredientsRelations = relations(ingredients, ({ one }) => ({
@@ -38,8 +41,15 @@ export const prepItemsRelations = relations(prepItems, ({ one }) => ({
   recipe: one(recipes, { fields: [prepItems.recipeId], references: [recipes.id] }),
 }));
 
-export const toolsRelations = relations(tools, ({ one }) => ({
+export const toolsRelations = relations(tools, ({ one, many }) => ({
   recipe: one(recipes, { fields: [tools.recipeId], references: [recipes.id] }),
+  clicks: many(clicks),
+}));
+
+export const clicksRelations = relations(clicks, ({ one }) => ({
+  user: one(users, { fields: [clicks.userId], references: [users.id] }),
+  tool: one(tools, { fields: [clicks.toolId], references: [tools.id] }),
+  recipe: one(recipes, { fields: [clicks.recipeId], references: [recipes.id] }),
 }));
 
 export const cooksRelations = relations(cooks, ({ one, many }) => ({
