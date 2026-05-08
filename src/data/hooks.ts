@@ -1,8 +1,8 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, isNotNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../db/client';
-import { recipes } from '../db/schema';
+import { cooks, recipes } from '../db/schema';
 import { hasCompletedOnboarding } from './preferences';
 import { getRecipe, type RecipeDetail, type RecipeListItem } from './recipes';
 import { getCurrentUserId } from './user';
@@ -91,6 +91,40 @@ export function useHomeData(): HomeData {
     inYourBank: data.slice(0, 2),
     worthATry: data.slice(2, 5),
     ready: true,
+  };
+}
+
+// Reactive Profile stats. Recomputes whenever any row in the cooks table changes
+// (drizzle-orm's useLiveQuery wraps a SQLite update listener). Only counts cooks
+// with completedAt set — see cooks.ts getProfileStats for the same rule.
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function useProfileStats() {
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    getCurrentUserId().then(setUserId).catch(() => setUserId(null));
+  }, []);
+
+  const effectiveUserId = userId ?? NO_USER;
+  const completedFilter = and(eq(cooks.userId, effectiveUserId), isNotNull(cooks.completedAt));
+  const oneWeekAgo = new Date(Date.now() - ONE_WEEK_MS).toISOString();
+
+  const totalQuery = db.select({ count: count() }).from(cooks).where(completedFilter);
+  const uniqueQuery = db.selectDistinct({ recipeId: cooks.recipeId }).from(cooks).where(completedFilter);
+  const weekQuery = db
+    .select({ count: count() })
+    .from(cooks)
+    .where(and(completedFilter, gte(cooks.startedAt, oneWeekAgo)));
+
+  const { data: totalData } = useLiveQuery(totalQuery, [userId]);
+  const { data: uniqueData } = useLiveQuery(uniqueQuery, [userId]);
+  const { data: weekData } = useLiveQuery(weekQuery, [userId]);
+
+  return {
+    totalCooks: totalData?.[0]?.count ?? 0,
+    uniqueRecipes: uniqueData?.length ?? 0,
+    cooksThisWeek: weekData?.[0]?.count ?? 0,
+    ready: userId !== null,
   };
 }
 

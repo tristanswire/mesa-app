@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Check, Star, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -17,9 +17,12 @@ import { AffiliateCard } from '../../components/AffiliateCard';
 import { IconButton } from '../../components/IconButton';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
+import { completeCook, setCookNotes, setCookRating } from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, shadows, spacing } from '../../theme';
+
+const NOTES_DEBOUNCE_MS = 500;
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'PostCook'>;
@@ -28,17 +31,40 @@ export function PostCookScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { recipeId, cookId } = route.params;
 
-  const { data: recipe, loading } = useRecipeDetail(route.params.recipeId);
+  const { data: recipe, loading } = useRecipeDetail(recipeId);
 
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
+  const notesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest notes value held in a ref so the unmount cleanup can flush without
+  // capturing a stale closure.
+  const notesRef = useRef(notes);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
 
   useEffect(() => {
     if (!loading && !recipe) {
       navigation.popToTop();
     }
   }, [loading, recipe, navigation]);
+
+  // On unmount: flush any pending notes save and mark the cook complete.
+  // Covers both the X dismiss and any future back-navigation path.
+  useEffect(() => {
+    return () => {
+      if (notesDebounceRef.current) {
+        clearTimeout(notesDebounceRef.current);
+        notesDebounceRef.current = null;
+      }
+      setCookNotes(cookId, notesRef.current).catch(() => {});
+      completeCook(cookId).catch((e) =>
+        console.error('[postcook] failed to complete cook', e),
+      );
+    };
+  }, [cookId]);
 
   if (loading || !recipe) {
     return <View style={{ flex: 1, backgroundColor: colors.pine }} />;
@@ -48,7 +74,21 @@ export function PostCookScreen() {
 
   const handleStarPress = (value: number) => {
     void Haptics.selectionAsync();
-    setRating((prev) => (prev === value ? 0 : value));
+    const next = rating === value ? 0 : value;
+    setRating(next);
+    setCookRating(cookId, next === 0 ? null : next).catch((e) =>
+      console.error('[postcook] failed to save rating', e),
+    );
+  };
+
+  const handleNotesChange = (text: string) => {
+    setNotes(text);
+    if (notesDebounceRef.current) clearTimeout(notesDebounceRef.current);
+    notesDebounceRef.current = setTimeout(() => {
+      setCookNotes(cookId, text).catch((e) =>
+        console.error('[postcook] failed to save notes', e),
+      );
+    }, NOTES_DEBOUNCE_MS);
   };
 
   return (
@@ -126,7 +166,7 @@ export function PostCookScreen() {
         <View style={styles.paddingH}>
           <TextInput
             value={notes}
-            onChangeText={setNotes}
+            onChangeText={handleNotesChange}
             placeholder="Any notes for next time…"
             placeholderTextColor={colors.creamMuted}
             multiline

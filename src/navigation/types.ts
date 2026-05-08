@@ -8,7 +8,7 @@ export type MainStackParamList = {
   RecipeDetail: { recipeId: string };
   PrepMode: { recipeId: string };
   CookMode: { recipeId: string; stepIndex?: number };
-  PostCook: { recipeId: string };
+  PostCook: { recipeId: string; cookId: string };
   Import: undefined;
   Showcase: undefined;
 };

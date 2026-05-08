@@ -79,6 +79,7 @@ export type CookModeViewProps = {
   recipeId: string;
   initialStepIndex?: number;
   theme: CookModeTheme;
+  cookId: string;
   onToggleTheme?: () => void;
 };
 
@@ -86,6 +87,7 @@ export function CookModeView({
   recipeId,
   initialStepIndex = 0,
   theme,
+  cookId,
   onToggleTheme,
 }: CookModeViewProps) {
   useKeepAwake();
@@ -100,15 +102,21 @@ export function CookModeView({
   const showOverflow = useCallback(() => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: ['Cancel', theme === 'dark' ? 'Switch to light' : 'Switch to dark'],
+        options: [
+          'Cancel',
+          theme === 'dark' ? 'Switch to light' : 'Switch to dark',
+          'Exit cook mode',
+        ],
         cancelButtonIndex: 0,
+        destructiveButtonIndex: 2,
         userInterfaceStyle: theme,
       },
       (buttonIndex) => {
         if (buttonIndex === 1) onToggleTheme?.();
+        else if (buttonIndex === 2) navigation.goBack();
       },
     );
-  }, [theme, onToggleTheme]);
+  }, [theme, onToggleTheme, navigation]);
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
 
@@ -125,7 +133,9 @@ export function CookModeView({
   const handleNext = () => {
     void Haptics.impactAsync(ImpactFeedbackStyle.Medium);
     if (isLastStep) {
-      navigation.navigate('PostCook', { recipeId: recipe.id });
+      // replace, not push: PostCook is terminal — back from it goes to Recipe Detail,
+      // not back into Cook Mode
+      navigation.replace('PostCook', { recipeId: recipe.id, cookId });
     } else {
       setStepIndex((i) => i + 1);
     }

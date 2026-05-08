@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
+import { useProfileStats } from '../../data/hooks';
 import { getUserPreferences, setTimerSoundEnabled } from '../../data/preferences';
 import type { MainStackParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
@@ -16,13 +17,11 @@ import { colors, radii, spacing } from '../../theme';
 type MainNav = NativeStackNavigationProp<MainStackParamList>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
-// TODO Phase 3.8: derive stats from cooks table count + collections + this-week filter
-const MOCK_STATS = {
+// Profile name + tagline are still mocked — Phase 3.10 will pull from auth/profile.
+// Collections is hardcoded to 0 until the feature ships (Phase 4 deferred).
+const PROFILE_HEADER = {
   name: 'Tristan',
-  tagline: 'Home cook · 24 recipes saved',
-  recipes: 24,
-  collections: 6,
-  thisWeek: 3,
+  tagline: 'Home cook',
 };
 
 export function ProfileScreen() {
@@ -36,6 +35,8 @@ export function ProfileScreen() {
       .then((p) => setTimerSoundOn(p.timerSoundEnabled))
       .catch(() => {});
   }, []);
+
+  const stats = useProfileStats();
 
   return (
     <>
@@ -57,9 +58,9 @@ export function ProfileScreen() {
             <User size={32} color={colors.oliveDark} strokeWidth={1.5} />
           </View>
           <View style={{ height: spacing.md }} />
-          <Text role="headline" align="center">{MOCK_STATS.name}</Text>
+          <Text role="headline" align="center">{PROFILE_HEADER.name}</Text>
           <View style={{ height: spacing.xs }} />
-          <Text role="caption" color="oliveDark" align="center">{MOCK_STATS.tagline}</Text>
+          <Text role="caption" color="oliveDark" align="center">{PROFILE_HEADER.tagline}</Text>
         </View>
 
         {/* ── Stats row ────────────────────────────────────────────── */}
@@ -67,7 +68,7 @@ export function ProfileScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statCol}>
             <Text role="headline" align="center" style={styles.statNumber}>
-              {String(MOCK_STATS.recipes)}
+              {String(stats.uniqueRecipes)}
             </Text>
             <Text role="caption" color="oliveDark" align="center">Recipes</Text>
           </View>
@@ -76,7 +77,7 @@ export function ProfileScreen() {
 
           <View style={styles.statCol}>
             <Text role="headline" align="center" style={styles.statNumber}>
-              {String(MOCK_STATS.collections)}
+              0
             </Text>
             <Text role="caption" color="oliveDark" align="center">Collections</Text>
           </View>
@@ -85,7 +86,7 @@ export function ProfileScreen() {
 
           <View style={styles.statCol}>
             <Text role="headline" align="center" style={styles.statNumber}>
-              {String(MOCK_STATS.thisWeek)}
+              {String(stats.cooksThisWeek)}
             </Text>
             <Text role="caption" color="oliveDark" align="center">This week</Text>
           </View>

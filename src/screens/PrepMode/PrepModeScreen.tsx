@@ -51,6 +51,58 @@ export function PrepModeScreen() {
 
   const prepItems = recipe.prepItems;
   const tools = recipe.tools;
+  const hasNoPrep = prepItems.length === 0;
+
+  if (hasNoPrep) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <View style={[styles.header, { paddingTop: insets.top + spacing.base }]}>
+          <View style={styles.headerIconWrap}>
+            <IconButton
+              icon={ChevronLeft}
+              onPress={() => navigation.goBack()}
+              accessibilityLabel="Go back"
+              size="md"
+            />
+          </View>
+          <View style={styles.headerCenter}>
+            <SectionLabel>PREP MODE</SectionLabel>
+            <Text role="body" style={styles.headerTitle} numberOfLines={1}>
+              {recipe.title}
+            </Text>
+          </View>
+          <View style={styles.headerIconWrap} />
+        </View>
+
+        <View style={styles.emptyState}>
+          <View style={styles.emptyFlame}>
+            <Flame size={28} color={colors.terracotta} strokeWidth={1.5} />
+          </View>
+          <Text role="display" align="center">No prep needed.</Text>
+          <View style={{ height: spacing.sm }} />
+          <Text role="body" color="oliveDark" align="center" style={styles.emptySubtitle}>
+            Heat up your tools and let&apos;s go.
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg },
+          ]}
+        >
+          <Button
+            variant="primary"
+            label="Begin Cooking →"
+            onPress={() => {
+              navigation.push('CookMode', { recipeId: recipe.id });
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
 
   const completedCount = Object.keys(checkedItems).length;
   const totalCount = prepItems.length;
@@ -269,5 +321,18 @@ const styles = StyleSheet.create({
   },
   toolCardWrap: {
     width: 280,
+  },
+  // ── Empty state ─────────────────────────────────────────────────────
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  emptyFlame: {
+    marginBottom: spacing.lg,
+  },
+  emptySubtitle: {
+    maxWidth: 280,
   },
 });
