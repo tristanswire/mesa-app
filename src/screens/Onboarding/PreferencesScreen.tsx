@@ -7,12 +7,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { Pill } from '../../components/Pill';
 import { Text } from '../../components/Text';
+import {
+  completeOnboarding,
+  type CookingFrequency,
+  type SkillLevel,
+} from '../../data/preferences';
 import { colors, spacing } from '../../theme';
 import { ProgressDots } from './ProgressDots';
 
 const FREQUENCY_OPTIONS = ['1-2x a week', '3-5x a week', 'Every day'] as const;
 const DIETARY_OPTIONS = ['Vegetarian', 'Gluten-free', 'Dairy-free', 'None'] as const;
 const SKILL_OPTIONS = ['Weeknight cook', 'Enthusiast', 'Pro'] as const;
+
+const FREQUENCY_TO_ENUM: Record<(typeof FREQUENCY_OPTIONS)[number], CookingFrequency> = {
+  '1-2x a week': '1-2x',
+  '3-5x a week': '3-5x',
+  'Every day': 'every-day',
+};
+
+const SKILL_TO_ENUM: Record<(typeof SKILL_OPTIONS)[number], SkillLevel> = {
+  'Weeknight cook': 'weeknight',
+  Enthusiast: 'enthusiast',
+  Pro: 'pro',
+};
+
+// Defaults applied at save time if the user tapped through without selecting.
+// Defaults are valid per Phase 3.6 — no validation gating the CTA.
+const DEFAULT_FREQUENCY: CookingFrequency = '3-5x';
+const DEFAULT_SKILL: SkillLevel = 'weeknight';
 
 export function PreferencesScreen() {
   const navigation = useNavigation();
@@ -44,8 +66,28 @@ export function PreferencesScreen() {
     setSkillLevel((prev) => (prev === value ? null : value));
   };
 
-  const handleLetsCook = () => {
-    // TODO Phase 3: persist preferences to Supabase before resetting
+  const handleLetsCook = async () => {
+    const freq =
+      cookingFrequency && cookingFrequency in FREQUENCY_TO_ENUM
+        ? FREQUENCY_TO_ENUM[cookingFrequency as keyof typeof FREQUENCY_TO_ENUM]
+        : DEFAULT_FREQUENCY;
+    const skill =
+      skillLevel && skillLevel in SKILL_TO_ENUM
+        ? SKILL_TO_ENUM[skillLevel as keyof typeof SKILL_TO_ENUM]
+        : DEFAULT_SKILL;
+
+    try {
+      await completeOnboarding({
+        cookingFrequency: freq,
+        dietaryPreferences: dietaryPrefs,
+        skillLevel: skill,
+      });
+    } catch (e) {
+      // Don't block the user on a write failure — they can re-edit later via Profile.
+      // Phase 3.10 sync will reconcile any local-only values.
+      console.error('[onboarding] failed to persist preferences', e);
+    }
+
     navigation.dispatch(
       CommonActions.reset({ index: 0, routes: [{ name: 'Main' }] }),
     );

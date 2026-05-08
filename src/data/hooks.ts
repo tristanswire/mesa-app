@@ -1,8 +1,9 @@
 import { desc, eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { db } from '../db/client';
 import { recipes } from '../db/schema';
+import { hasCompletedOnboarding } from './preferences';
 import { getRecipe, type RecipeDetail, type RecipeListItem } from './recipes';
 import { getCurrentUserId } from './user';
 
@@ -91,4 +92,24 @@ export function useHomeData(): HomeData {
     worthATry: data.slice(2, 5),
     ready: true,
   };
+}
+
+// `complete === null` means we're still loading the flag — gate routing on this.
+export function useOnboardingComplete() {
+  const [complete, setComplete] = useState<boolean | null>(null);
+
+  const refresh = useCallback(() => {
+    hasCompletedOnboarding()
+      .then(setComplete)
+      .catch((err) => {
+        console.error('[useOnboardingComplete] read failed', err);
+        setComplete(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { complete, refresh };
 }
