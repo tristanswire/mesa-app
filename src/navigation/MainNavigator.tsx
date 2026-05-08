@@ -1,12 +1,16 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  RecipeDetailScreen,
-  PrepModeScreen,
+  CookingFrequencyScreen,
   CookModeScreen,
-  PostCookScreen,
+  DefaultServingSizeScreen,
+  DietaryPreferencesScreen,
   ImportScreen,
+  PostCookScreen,
+  PrepModeScreen,
+  RecipeDetailScreen,
   ShowcaseScreen,
+  SkillLevelScreen,
 } from '../screens';
 import { TabNavigator } from './TabNavigator';
 import type { MainStackParamList } from './types';
@@ -25,6 +29,12 @@ export function MainNavigator() {
       <Stack.Screen name="CookMode" component={CookModeScreen} />
       <Stack.Screen name="PostCook" component={PostCookScreen} />
       <Stack.Screen name="Showcase" component={ShowcaseScreen} />
+
+      {/* Profile preference edit screens */}
+      <Stack.Screen name="CookingFrequency" component={CookingFrequencyScreen} />
+      <Stack.Screen name="DietaryPreferences" component={DietaryPreferencesScreen} />
+      <Stack.Screen name="SkillLevel" component={SkillLevelScreen} />
+      <Stack.Screen name="DefaultServingSize" component={DefaultServingSizeScreen} />
 
       {/* Modal — slides up from bottom, no tab bar */}
       <Stack.Screen

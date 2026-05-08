@@ -1,21 +1,24 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { User } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
-import { useProfileStats } from '../../data/hooks';
-import { getUserPreferences, setTimerSoundEnabled } from '../../data/preferences';
-import type { MainStackParamList, RootStackParamList } from '../../navigation/types';
+import { useProfileStats, useUserPreferences } from '../../data/hooks';
+import {
+  setShowRatingPrompt,
+  setTimerSoundEnabled,
+  type CookingFrequency,
+  type SkillLevel,
+} from '../../data/preferences';
+import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
-// Profile needs two nav scopes: Main stack for Showcase, Root for Onboarding
-type MainNav = NativeStackNavigationProp<MainStackParamList>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = NativeStackNavigationProp<MainStackParamList>;
 
 // Profile name + tagline are still mocked — Phase 3.10 will pull from auth/profile.
 // Collections is hardcoded to 0 until the feature ships (Phase 4 deferred).
@@ -24,19 +27,38 @@ const PROFILE_HEADER = {
   tagline: 'Home cook',
 };
 
+const FREQUENCY_LABELS: Record<CookingFrequency, string> = {
+  '1-2x': '1-2x a week',
+  '3-5x': '3-5x a week',
+  'every-day': 'Every day',
+};
+
+const SKILL_LABELS: Record<SkillLevel, string> = {
+  weeknight: 'Weeknight cook',
+  enthusiast: 'Enthusiast',
+  pro: 'Pro',
+};
+
 export function ProfileScreen() {
-  const mainNav = useNavigation<MainNav>();
-  const rootNav = useNavigation<RootNav>();
+  const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-
-  const [timerSoundOn, setTimerSoundOn] = useState(true);
-  useEffect(() => {
-    getUserPreferences()
-      .then((p) => setTimerSoundOn(p.timerSoundEnabled))
-      .catch(() => {});
-  }, []);
-
   const stats = useProfileStats();
+  const { data: prefs, refresh: refreshPrefs } = useUserPreferences();
+
+  // Refresh prefs whenever Profile regains focus — covers returning from any
+  // of the four edit screens.
+  useFocusEffect(
+    useCallback(() => {
+      refreshPrefs();
+    }, [refreshPrefs]),
+  );
+
+  const dietaryDisplay =
+    prefs == null
+      ? '—'
+      : prefs.dietaryPreferences.length === 0
+        ? 'None'
+        : prefs.dietaryPreferences.join(', ');
 
   return (
     <>
@@ -100,20 +122,49 @@ export function ProfileScreen() {
         <View style={{ height: spacing.md }} />
         <View style={styles.paddingH}>
           <SettingRow
+            label="Cooking frequency"
+            valueText={prefs?.cookingFrequency ? FREQUENCY_LABELS[prefs.cookingFrequency] : 'Not set'}
+            onPress={() => navigation.navigate('CookingFrequency')}
+          />
+          <SettingRow
             label="Dietary preferences"
-            onPress={() => { /* TODO Phase 3: dietary preferences detail */ }}
+            valueText={dietaryDisplay}
+            onPress={() => navigation.navigate('DietaryPreferences')}
+          />
+          <SettingRow
+            label="Skill level"
+            valueText={prefs?.skillLevel ? SKILL_LABELS[prefs.skillLevel] : 'Not set'}
+            onPress={() => navigation.navigate('SkillLevel')}
           />
           <SettingRow
             label="Default serving size"
-            onPress={() => { /* TODO Phase 3: serving size picker */ }}
+            valueText={`${prefs?.defaultServingSize ?? 4} servings`}
+            onPress={() => navigation.navigate('DefaultServingSize')}
           />
           <SettingRow
             variant="toggle"
             label="Timer sound"
-            value={timerSoundOn}
-            onValueChange={(next) => {
-              setTimerSoundOn(next);
-              setTimerSoundEnabled(next).catch((e) => console.error('[profile] failed to save timer sound preference', e));
+            value={prefs?.timerSoundEnabled ?? true}
+            onValueChange={async (next) => {
+              try {
+                await setTimerSoundEnabled(next);
+                refreshPrefs();
+              } catch (e) {
+                console.error('[profile] timer sound save failed', e);
+              }
+            }}
+          />
+          <SettingRow
+            variant="toggle"
+            label="Show rating prompt after cooking"
+            value={prefs?.showRatingPrompt ?? true}
+            onValueChange={async (next) => {
+              try {
+                await setShowRatingPrompt(next);
+                refreshPrefs();
+              } catch (e) {
+                console.error('[profile] show rating prompt save failed', e);
+              }
             }}
             isLast
           />
@@ -142,22 +193,13 @@ export function ProfileScreen() {
           <Text role="body" color="terracotta" align="center">Sign out</Text>
         </Pressable>
 
-        {/* ── Debug links (Phase 2 only) ───────────────────────────── */}
+        {/* ── Debug links ─────────────────────────────────────────── */}
         <View style={{ height: spacing.lg }} />
         <Pressable
-          onPress={() => mainNav.navigate('Showcase')}
+          onPress={() => navigation.navigate('Showcase')}
           style={({ pressed }) => [styles.centerLink, pressed && { opacity: 0.6 }]}
         >
           <Text role="caption" color="oliveDark" align="center">Component Showcase</Text>
-        </Pressable>
-
-        <View style={{ height: spacing.sm }} />
-        {/* Temporary — removed in Phase 3 when first-launch gate ships */}
-        <Pressable
-          onPress={() => rootNav.navigate('Onboarding')}
-          style={({ pressed }) => [styles.centerLink, pressed && { opacity: 0.6 }]}
-        >
-          <Text role="caption" color="oliveDark" align="center">Open Onboarding (debug)</Text>
         </Pressable>
       </ScrollView>
     </>

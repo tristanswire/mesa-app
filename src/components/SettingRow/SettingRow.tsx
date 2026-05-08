@@ -14,6 +14,7 @@ export interface SettingRowProps {
   variant?: 'list' | 'card' | 'toggle';
   // For variant !== 'toggle'
   onPress?: () => void;
+  valueText?: string;
   // For variant === 'toggle'
   value?: boolean;
   onValueChange?: (next: boolean) => void;
@@ -26,6 +27,7 @@ export function SettingRow({
   isLast = false,
   variant = 'list',
   value = false,
+  valueText,
   onValueChange,
 }: SettingRowProps) {
   const isCard = variant === 'card';
@@ -44,7 +46,14 @@ export function SettingRow({
           ios_backgroundColor={colors.oat}
         />
       ) : (
-        <ChevronRight size={20} color={colors.oliveDark} strokeWidth={1.5} />
+        <>
+          {valueText ? (
+            <Text role="caption" color="oliveDark" numberOfLines={1} style={styles.valueText}>
+              {valueText}
+            </Text>
+          ) : null}
+          <ChevronRight size={20} color={colors.oliveDark} strokeWidth={1.5} />
+        </>
       )}
     </>
   );
@@ -106,5 +115,10 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
+  },
+  valueText: {
+    flexShrink: 1,
+    maxWidth: '55%',
+    textAlign: 'right',
   },
 });

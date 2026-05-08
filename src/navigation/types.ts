@@ -9,8 +9,12 @@ export type MainStackParamList = {
   PrepMode: { recipeId: string };
   CookMode: { recipeId: string; stepIndex?: number };
   PostCook: { recipeId: string; cookId: string };
-  Import: undefined;
+  Import: { prefilledUrl?: string } | undefined;
   Showcase: undefined;
+  CookingFrequency: undefined;
+  DietaryPreferences: undefined;
+  SkillLevel: undefined;
+  DefaultServingSize: undefined;
 };
 
 export type TabsParamList = {

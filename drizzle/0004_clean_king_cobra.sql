@@ -1,0 +1,1 @@
+ALTER TABLE `user_preferences` ADD `show_rating_prompt` integer DEFAULT true NOT NULL;

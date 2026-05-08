@@ -14,7 +14,9 @@ import { IngredientChip } from '../../components/IngredientChip';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { TimerToken } from '../../components/TimerToken';
+import { completeCook } from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
+import { getUserPreferences } from '../../data/preferences';
 import type { RecipeDetail } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ColorToken } from '../../theme';
@@ -130,12 +132,31 @@ export function CookModeView({
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === steps.length - 1;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     void Haptics.impactAsync(ImpactFeedbackStyle.Medium);
     if (isLastStep) {
-      // replace, not push: PostCook is terminal — back from it goes to Recipe Detail,
-      // not back into Cook Mode
-      navigation.replace('PostCook', { recipeId: recipe.id, cookId });
+      // Honor the "Show rating prompt after cooking" preference. When OFF,
+      // skip PostCook entirely — still mark the cook complete so Profile stats
+      // and the "previously rated" check stay accurate.
+      let showPrompt = true;
+      try {
+        const prefs = await getUserPreferences();
+        showPrompt = prefs.showRatingPrompt;
+      } catch (e) {
+        console.error('[cookmode] failed to read prefs, defaulting to show prompt', e);
+      }
+      if (showPrompt) {
+        // replace, not push: PostCook is terminal — back from it goes to Recipe Detail,
+        // not back into Cook Mode
+        navigation.replace('PostCook', { recipeId: recipe.id, cookId });
+      } else {
+        try {
+          await completeCook(cookId);
+        } catch (e) {
+          console.error('[cookmode] failed to complete cook', e);
+        }
+        navigation.popToTop();
+      }
     } else {
       setStepIndex((i) => i + 1);
     }

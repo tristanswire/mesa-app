@@ -13,6 +13,7 @@ export type UserPreferences = {
   defaultServingSize: number;
   hasCompletedOnboarding: boolean;
   timerSoundEnabled: boolean;
+  showRatingPrompt: boolean;
 };
 
 export type OnboardingResult = {
@@ -37,6 +38,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
       defaultServingSize: 4,
       hasCompletedOnboarding: false,
       timerSoundEnabled: true,
+      showRatingPrompt: true,
     };
   }
 
@@ -48,6 +50,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
     defaultServingSize: row.defaultServingSize ?? 4,
     hasCompletedOnboarding: row.hasCompletedOnboarding ?? false,
     timerSoundEnabled: row.timerSoundEnabled ?? true,
+    showRatingPrompt: row.showRatingPrompt ?? true,
   };
 }
 
@@ -74,6 +77,46 @@ export async function setTimerSoundEnabled(enabled: boolean): Promise<void> {
   await db
     .update(userPreferences)
     .set({ timerSoundEnabled: enabled })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setShowRatingPrompt(enabled: boolean): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ showRatingPrompt: enabled })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setCookingFrequency(value: CookingFrequency): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ cookingFrequency: value })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setDietaryPreferences(values: string[]): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ dietaryPreferences: JSON.stringify(values) })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setSkillLevel(value: SkillLevel): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ skillLevel: value })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setDefaultServingSize(value: number): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ defaultServingSize: value })
     .where(eq(userPreferences.userId, userId));
 }
 

@@ -3,7 +3,11 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../db/client';
 import { cooks, recipes } from '../db/schema';
-import { hasCompletedOnboarding } from './preferences';
+import {
+  getUserPreferences,
+  hasCompletedOnboarding,
+  type UserPreferences,
+} from './preferences';
 import { getRecipe, type RecipeDetail, type RecipeListItem } from './recipes';
 import { getCurrentUserId } from './user';
 
@@ -126,6 +130,24 @@ export function useProfileStats() {
     cooksThisWeek: weekData?.[0]?.count ?? 0,
     ready: userId !== null,
   };
+}
+
+// Preferences change rarely. Skip useLiveQuery — Profile re-fetches on focus
+// when navigating back from an edit screen (see ProfileScreen useFocusEffect).
+export function useUserPreferences() {
+  const [data, setData] = useState<UserPreferences | null>(null);
+
+  const refresh = useCallback(() => {
+    getUserPreferences()
+      .then(setData)
+      .catch((err) => console.error('[useUserPreferences] read failed', err));
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { data, refresh };
 }
 
 // `complete === null` means we're still loading the flag — gate routing on this.

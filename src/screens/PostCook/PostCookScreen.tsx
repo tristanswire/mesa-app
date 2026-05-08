@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Check, Star, X } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,18 +14,40 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AffiliateCard } from '../../components/AffiliateCard';
+import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
-import { completeCook, setCookNotes, setCookRating } from '../../data/cooks';
+import {
+  completeCook,
+  getMostRecentCompletedCook,
+  setCookNotes,
+  setCookRating,
+  type LastCookSummary,
+} from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, shadows, spacing } from '../../theme';
 
-const NOTES_DEBOUNCE_MS = 500;
-
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'PostCook'>;
+
+// Quick relative-date formatter — no external dep needed for this one string.
+function formatRelativeDate(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return 'before';
+  const diffMs = Date.now() - then;
+  const day = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diffMs / day);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return 'last week';
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+  if (days < 60) return 'last month';
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return 'over a year ago';
+}
 
 export function PostCookScreen() {
   const navigation = useNavigation<Nav>();
@@ -35,15 +57,31 @@ export function PostCookScreen() {
 
   const { data: recipe, loading } = useRecipeDetail(recipeId);
 
-  const [rating, setRating] = useState(0);
+  const [lastCook, setLastCook] = useState<LastCookSummary>(null);
+  const [lastCookLoaded, setLastCookLoaded] = useState(false);
+  const [rating, setRating] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
-  const notesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Latest notes value held in a ref so the unmount cleanup can flush without
-  // capturing a stale closure.
-  const notesRef = useRef(notes);
+  const [initialRating, setInitialRating] = useState<number | null>(null);
+  const [initialNotes, setInitialNotes] = useState('');
+
+  // Initial load: figure out if this is a re-cook with prior rating.
+  // The current in-flight cook still has completedAt: null (we only call
+  // completeCook on unmount), so the helper's isNotNull filter excludes it.
   useEffect(() => {
-    notesRef.current = notes;
-  }, [notes]);
+    getMostRecentCompletedCook(recipeId)
+      .then((prev) => {
+        if (prev && prev.cookId !== cookId) {
+          setLastCook(prev);
+          setRating(prev.rating);
+          setInitialRating(prev.rating);
+          const prevNotes = prev.notes ?? '';
+          setNotes(prevNotes);
+          setInitialNotes(prevNotes);
+        }
+      })
+      .catch((e) => console.error('[postcook] failed to load prior cook', e))
+      .finally(() => setLastCookLoaded(true));
+  }, [recipeId, cookId]);
 
   useEffect(() => {
     if (!loading && !recipe) {
@@ -51,15 +89,10 @@ export function PostCookScreen() {
     }
   }, [loading, recipe, navigation]);
 
-  // On unmount: flush any pending notes save and mark the cook complete.
-  // Covers both the X dismiss and any future back-navigation path.
+  // Mark this cook as completed on unmount. Rating/notes are saved only via
+  // the explicit Save button — X dismisses without persisting them.
   useEffect(() => {
     return () => {
-      if (notesDebounceRef.current) {
-        clearTimeout(notesDebounceRef.current);
-        notesDebounceRef.current = null;
-      }
-      setCookNotes(cookId, notesRef.current).catch(() => {});
       completeCook(cookId).catch((e) =>
         console.error('[postcook] failed to complete cook', e),
       );
@@ -71,24 +104,34 @@ export function PostCookScreen() {
   }
 
   const displayedTools = recipe.tools.slice(0, 2);
+  const isRecookWithRating =
+    lastCookLoaded && lastCook !== null && lastCook.rating !== null;
+  const heroTitle = isRecookWithRating ? 'Welcome back.' : 'Nice work.';
+  const notesPlaceholder = isRecookWithRating
+    ? 'Update your notes…'
+    : 'Any notes for next time…';
+  const hasUnsavedChanges =
+    rating !== initialRating || notes.trim() !== initialNotes.trim();
 
   const handleStarPress = (value: number) => {
     void Haptics.selectionAsync();
-    const next = rating === value ? 0 : value;
-    setRating(next);
-    setCookRating(cookId, next === 0 ? null : next).catch((e) =>
-      console.error('[postcook] failed to save rating', e),
-    );
+    setRating((prev) => (prev === value ? null : value));
   };
 
-  const handleNotesChange = (text: string) => {
-    setNotes(text);
-    if (notesDebounceRef.current) clearTimeout(notesDebounceRef.current);
-    notesDebounceRef.current = setTimeout(() => {
-      setCookNotes(cookId, text).catch((e) =>
-        console.error('[postcook] failed to save notes', e),
-      );
-    }, NOTES_DEBOUNCE_MS);
+  const handleSave = async () => {
+    void Haptics.selectionAsync();
+    try {
+      await setCookRating(cookId, rating);
+      await setCookNotes(cookId, notes);
+    } catch (e) {
+      console.error('[postcook] save failed', e);
+    }
+    navigation.goBack();
+  };
+
+  const handleDismiss = () => {
+    // Just navigate away — completeCook fires on unmount; rating/notes are not persisted.
+    navigation.popToTop();
   };
 
   return (
@@ -101,8 +144,8 @@ export function PostCookScreen() {
           icon={X}
           tint="cream"
           size="md"
-          onPress={() => navigation.popToTop()}
-          accessibilityLabel="Close and return to home"
+          onPress={handleDismiss}
+          accessibilityLabel="Close without saving"
         />
       </View>
 
@@ -112,7 +155,10 @@ export function PostCookScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + spacing.xxl },
+          {
+            paddingBottom:
+              insets.bottom + (hasUnsavedChanges ? spacing.xxl * 2 : spacing.xxl),
+          },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -129,31 +175,43 @@ export function PostCookScreen() {
         <View style={{ height: spacing.lg }} />
 
         {/* ── Celebration text ───────────────────────────────────────── */}
-        <Text role="display" color="cream" align="center">Nice work.</Text>
+        <Text role="display" color="cream" align="center">{heroTitle}</Text>
         <View style={{ height: spacing.xs }} />
         <Text role="caption" color="creamMuted" align="center">{recipe.title}</Text>
+
+        {isRecookWithRating && lastCook && (
+          <>
+            <View style={{ height: spacing.xs }} />
+            <Text role="caption" color="creamMuted" align="center">
+              Last rated {formatRelativeDate(lastCook.completedAt)}
+            </Text>
+          </>
+        )}
 
         <View style={{ height: spacing.xl }} />
 
         {/* ── Star rating ────────────────────────────────────────────── */}
         <View style={styles.centerRow}>
           <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((value) => (
-              <Pressable
-                key={value}
-                onPress={() => handleStarPress(value)}
-                hitSlop={4}
-                accessibilityRole="button"
-                accessibilityLabel={`Rate ${value} star${value > 1 ? 's' : ''}`}
-              >
-                <Star
-                  size={32}
-                  color={value <= rating ? colors.terracotta : colors.creamMuted}
-                  fill={value <= rating ? colors.terracotta : 'none'}
-                  strokeWidth={1.5}
-                />
-              </Pressable>
-            ))}
+            {[1, 2, 3, 4, 5].map((value) => {
+              const filled = rating !== null && value <= rating;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => handleStarPress(value)}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Rate ${value} star${value > 1 ? 's' : ''}`}
+                >
+                  <Star
+                    size={32}
+                    color={filled ? colors.terracotta : colors.creamMuted}
+                    fill={filled ? colors.terracotta : 'none'}
+                    strokeWidth={1.5}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -166,8 +224,8 @@ export function PostCookScreen() {
         <View style={styles.paddingH}>
           <TextInput
             value={notes}
-            onChangeText={handleNotesChange}
-            placeholder="Any notes for next time…"
+            onChangeText={setNotes}
+            placeholder={notesPlaceholder}
             placeholderTextColor={colors.creamMuted}
             multiline
             style={styles.notesInput}
@@ -216,6 +274,18 @@ export function PostCookScreen() {
           Affiliate links help keep Mesa ad-free.
         </Text>
       </ScrollView>
+
+      {/* ── Save CTA — appears only when there's something new to persist ── */}
+      {hasUnsavedChanges && (
+        <View
+          style={[
+            styles.saveBar,
+            { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg },
+          ]}
+        >
+          <Button variant="primary" label="Save" onPress={handleSave} />
+        </View>
+      )}
     </View>
   );
 }
@@ -280,5 +350,17 @@ const styles = StyleSheet.create({
   },
   toolCardWrap: {
     width: 280,
+  },
+  // ── Save bar ────────────────────────────────────────────────────────
+  saveBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.md,
+    backgroundColor: colors.pine,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(247, 242, 234, 0.2)',
   },
 });

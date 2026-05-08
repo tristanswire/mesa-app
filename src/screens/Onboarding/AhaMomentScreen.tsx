@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { Sparkles } from 'lucide-react-native';
@@ -7,12 +7,18 @@ import { Pressable, ScrollView, StyleSheet, Text as RNText, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { Text } from '../../components/Text';
+import { completeOnboarding } from '../../data/preferences';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 import { MesaMark } from './MesaMark';
 import { ProgressDots } from './ProgressDots';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList>;
+
+// BA cookies — known to import cleanly, demonstrates Mesa's recipe rendering
+// at its best when the user lands on the result.
+const DEMO_RECIPE_URL =
+  'https://www.bonappetit.com/recipe/bas-best-chocolate-chip-cookies';
 
 function InlineMiniChip({ label }: { label: string }) {
   return (
@@ -27,6 +33,30 @@ export function AhaMomentScreen() {
   const insets = useSafeAreaInsets();
 
   const goNext = () => navigation.navigate('Preferences');
+
+  const handleImportFirst = async () => {
+    // Apply default preferences silently — user can edit later in Profile.
+    // Skipping the Preferences screen is the whole point of this CTA.
+    try {
+      await completeOnboarding({
+        cookingFrequency: '3-5x',
+        dietaryPreferences: [],
+        skillLevel: 'weeknight',
+      });
+    } catch (e) {
+      console.error('[onboarding] failed to persist defaults', e);
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [
+          { name: 'Main' },
+          { name: 'Import', params: { prefilledUrl: DEMO_RECIPE_URL } },
+        ],
+      }),
+    );
+  };
 
   return (
     <View style={styles.root}>
@@ -124,7 +154,7 @@ export function AhaMomentScreen() {
           <Button
             variant="primary"
             label="Import your first recipe"
-            onPress={goNext}
+            onPress={handleImportFirst}
           />
         </View>
 

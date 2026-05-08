@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, MoreVertical } from 'lucide-react-native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AffiliateCard } from '../../components/AffiliateCard';
 import { Button } from '../../components/Button';
@@ -24,6 +24,8 @@ export function RecipeDetailScreen() {
 
   const { data: recipe, loading, error } = useRecipeDetail(route.params.recipeId);
 
+  const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
+
   // Phase 3.11 will add a real error state. For now, route back if a phantom ID lands here.
   useEffect(() => {
     if (!loading && (error || !recipe)) {
@@ -35,7 +37,10 @@ export function RecipeDetailScreen() {
     return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
   }
 
-  const previewIngredients = recipe.ingredients.slice(0, 4);
+  const visibleIngredients = ingredientsExpanded
+    ? recipe.ingredients
+    : recipe.ingredients.slice(0, 4);
+  const hasMoreIngredients = recipe.ingredients.length > 4;
   const tintKey = recipe.tintKey ?? undefined;
 
   return (
@@ -120,7 +125,7 @@ export function RecipeDetailScreen() {
           <SectionLabel>INGREDIENTS</SectionLabel>
           <View style={{ height: spacing.md }} />
 
-          {previewIngredients.map((ing) => (
+          {visibleIngredients.map((ing) => (
             <View key={ing.id} style={styles.ingredientRow}>
               <Text role="caption" color="oliveDark" style={styles.bullet}>·</Text>
               <Text role="body" style={styles.ingredientText}>
@@ -130,17 +135,26 @@ export function RecipeDetailScreen() {
             </View>
           ))}
 
-          <View style={{ height: spacing.sm }} />
-          {/* TODO Phase 3: expand/collapse full ingredient list */}
-          <Pressable
-            onPress={() => {}}
-            accessibilityRole="button"
-            accessibilityLabel={`Show all ${recipe.ingredients.length} ingredients`}
-          >
-            <Text role="caption" color="terracotta">
-              Show all {recipe.ingredients.length} →
-            </Text>
-          </Pressable>
+          {hasMoreIngredients && (
+            <>
+              <View style={{ height: spacing.sm }} />
+              <Pressable
+                onPress={() => setIngredientsExpanded((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  ingredientsExpanded
+                    ? 'Show fewer ingredients'
+                    : `Show all ${recipe.ingredients.length} ingredients`
+                }
+              >
+                <Text role="caption" color="terracotta">
+                  {ingredientsExpanded
+                    ? 'Show fewer ↑'
+                    : `Show all ${recipe.ingredients.length} →`}
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         {/* ── Tools ──────────────────────────────────────────────────── */}

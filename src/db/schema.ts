@@ -129,5 +129,8 @@ export const userPreferences = sqliteTable('user_preferences', {
   timerSoundEnabled: integer('timer_sound_enabled', { mode: 'boolean' })
     .notNull()
     .default(true),
+  showRatingPrompt: integer('show_rating_prompt', { mode: 'boolean' })
+    .notNull()
+    .default(true),
   syncedAt: text('synced_at'),
 });

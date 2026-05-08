@@ -1,5 +1,5 @@
 // PLACEHOLDER tags — Phase 3.11 swaps in real associate IDs once enrolled.
-const AMAZON_ASSOCIATE_TAG = 'mesa-20';
+const AMAZON_ASSOCIATE_TAG = 'cookwithmesa-20';
 const SUR_LA_TABLE_TAG = 'mesa-affiliate';
 
 /**

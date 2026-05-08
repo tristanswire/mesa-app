@@ -1,6 +1,12 @@
 export { HomeScreen } from './Home';
 export { RecipesScreen } from './Recipes';
-export { ProfileScreen } from './Profile';
+export {
+  ProfileScreen,
+  CookingFrequencyScreen,
+  DietaryPreferencesScreen,
+  SkillLevelScreen,
+  DefaultServingSizeScreen,
+} from './Profile';
 export { RecipeDetailScreen } from './RecipeDetail';
 export { PrepModeScreen } from './PrepMode';
 export { CookModeScreen } from './CookMode';

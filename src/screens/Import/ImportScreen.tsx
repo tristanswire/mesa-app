@@ -1,8 +1,9 @@
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Camera, ChevronLeft, Link, Pencil, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
@@ -17,12 +18,20 @@ import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
+type Route = RouteProp<MainStackParamList, 'Import'>;
 
 export function ImportScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
 
-  const [url, setUrl] = useState('');
+  const prefilledUrl = route.params?.prefilledUrl;
+  const [url, setUrl] = useState(prefilledUrl ?? '');
+
+  // If prefilledUrl arrives after mount (re-entered the modal), seed the input.
+  useEffect(() => {
+    if (prefilledUrl) setUrl(prefilledUrl);
+  }, [prefilledUrl]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);

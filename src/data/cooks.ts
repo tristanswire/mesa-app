@@ -51,6 +51,44 @@ export async function getCook(cookId: string): Promise<Cook | null> {
   return (result[0] as Cook | undefined) ?? null;
 }
 
+export type LastCookSummary = {
+  cookId: string;
+  rating: number | null;
+  notes: string | null;
+  completedAt: string;
+} | null;
+
+// Returns the most recent cook of `recipeId` that has completedAt set.
+// PostCook calls this on mount to decide between "Nice work." and
+// "Welcome back." — the current in-flight cook (still completedAt: null at
+// that point) is excluded by the isNotNull filter.
+export async function getMostRecentCompletedCook(
+  recipeId: string,
+): Promise<LastCookSummary> {
+  const userId = await getCurrentUserId();
+  const result = await db
+    .select()
+    .from(cooks)
+    .where(
+      and(
+        eq(cooks.userId, userId),
+        eq(cooks.recipeId, recipeId),
+        isNotNull(cooks.completedAt),
+      ),
+    )
+    .orderBy(desc(cooks.completedAt))
+    .limit(1);
+
+  if (result.length === 0) return null;
+  const cook = result[0];
+  return {
+    cookId: cook.id,
+    rating: cook.rating ?? null,
+    notes: cook.notes ?? null,
+    completedAt: cook.completedAt!,
+  };
+}
+
 export async function getCooksForUser(): Promise<Cook[]> {
   const userId = await getCurrentUserId();
   const result = await db
