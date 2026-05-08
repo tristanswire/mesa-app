@@ -131,7 +131,9 @@ export function PostCookScreen() {
 
   const handleDismiss = () => {
     // Just navigate away — completeCook fires on unmount; rating/notes are not persisted.
-    navigation.popToTop();
+    // CookMode used navigation.replace, so the stack is [Tabs, RecipeDetail, PostCook]
+    // and goBack lands on Recipe Detail — the natural post-cook destination.
+    navigation.goBack();
   };
 
   return (
