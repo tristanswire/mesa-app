@@ -15,6 +15,13 @@
       "when": 1778085442339,
       "tag": "0001_flippant_mystique",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778093105689,
+      "tag": "0002_marvelous_jack_power",
+      "breakpoints": true
     }
   ]
 }

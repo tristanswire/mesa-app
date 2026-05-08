@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import { ChevronLeft, MoreVertical } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { RecipeImagePlaceholder } from '../../components/RecipeImagePlaceholder';
@@ -13,7 +12,7 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, radii, shadows, spacing } from '../../theme';
+import { colors, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'RecipeDetail'>;
@@ -21,7 +20,6 @@ type Route = RouteProp<MainStackParamList, 'RecipeDetail'>;
 export function RecipeDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
 
   const { data: recipe, loading, error } = useRecipeDetail(route.params.recipeId);
 
@@ -47,7 +45,7 @@ export function RecipeDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Hero image ─────────────────────────────────────────────── */}
+        {/* ── Hero image (clean, no overlay) ─────────────────────────── */}
         <View style={styles.hero}>
           {recipe.imageUrl ? (
             <Image
@@ -58,45 +56,33 @@ export function RecipeDetailScreen() {
           ) : (
             <RecipeImagePlaceholder tintKey={tintKey} />
           )}
+        </View>
 
-          {/* Overlay: back | title chip | overflow */}
-          <View
-            style={[
-              styles.heroOverlay,
-              { paddingTop: insets.top + spacing.base },
-            ]}
+        {/* ── Header row (below image) ───────────────────────────────── */}
+        <View style={styles.headerRow}>
+          <IconButton
+            icon={ChevronLeft}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Go back"
+            size="md"
+            tint="pine"
+          />
+          <Text
+            role="headline"
+            numberOfLines={1}
+            style={styles.headerTitle}
           >
-            <View style={styles.heroIconWrap}>
-              <IconButton
-                icon={ChevronLeft}
-                onPress={() => navigation.goBack()}
-                accessibilityLabel="Go back"
-                size="md"
-              />
-            </View>
-
-            <View style={styles.titleChip}>
-              <Text
-                role="caption"
-                color="ink"
-                numberOfLines={1}
-                style={styles.titleChipText}
-              >
-                {recipe.title}
-              </Text>
-            </View>
-
-            <View style={styles.heroIconWrap}>
-              <IconButton
-                icon={MoreVertical}
-                onPress={() => {
-                  // TODO Phase 3: recipe options menu
-                }}
-                accessibilityLabel="Recipe options"
-                size="md"
-              />
-            </View>
-          </View>
+            {recipe.title}
+          </Text>
+          <IconButton
+            icon={MoreVertical}
+            onPress={() => {
+              // TODO Phase 3: recipe options menu
+            }}
+            accessibilityLabel="Recipe options"
+            size="md"
+            tint="pine"
+          />
         </View>
 
         {/* ── Metadata ───────────────────────────────────────────────── */}
@@ -175,38 +161,23 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 9,
   },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  // ── Header row (sits on Cream below the image) ──────────────────────
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.base,
-    paddingBottom: spacing.base,
+    paddingTop: spacing.md,
   },
-  heroIconWrap: {
-    backgroundColor: colors.cream,
-    borderRadius: radii.pill,
-    ...shadows.card,
-  },
-  titleChip: {
+  headerTitle: {
     flex: 1,
-    backgroundColor: colors.oat,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.xs,
-    marginHorizontal: spacing.sm,
-    alignItems: 'center',
-    ...shadows.card,
-  },
-  titleChipText: {
     fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: spacing.sm,
   },
   // ── Body sections ───────────────────────────────────────────────────
   section: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
   },
   ctaRow: {
     flexDirection: 'row',

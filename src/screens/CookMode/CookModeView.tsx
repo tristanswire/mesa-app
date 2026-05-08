@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { ImpactFeedbackStyle } from 'expo-haptics';
+import { useKeepAwake } from 'expo-keep-awake';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -18,6 +19,7 @@ import type { RecipeDetail } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ColorToken } from '../../theme';
 import { colors, spacing } from '../../theme';
+import { useTimerManager } from './useTimerManager';
 
 type RecipeStep = RecipeDetail['steps'][number];
 
@@ -78,11 +80,14 @@ export type CookModeViewProps = {
 };
 
 export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookModeViewProps) {
+  useKeepAwake();
+
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
   const tc = THEMES[theme];
 
   const { data: recipe, loading } = useRecipeDetail(recipeId);
+  const { timers, startTimer, cancelTimer, dismissCompletedTimer } = useTimerManager();
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
 
@@ -163,13 +168,26 @@ export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookMode
               );
             }
             const timer = currentStep.timers.find((x) => x.id === seg.timerId);
+            if (!timer) return null;
+            const state = timers[timer.id];
+            const status = state?.status ?? 'idle';
+            const remaining = state?.remainingSeconds ?? 0;
             return (
               <TimerToken
                 key={`timer-${i}`}
-                label={timer?.label ?? ''}
-                durationSeconds={timer?.durationSeconds ?? 0}
-                isActive={false}
+                label={timer.label}
+                status={status}
+                remainingSeconds={remaining}
                 theme={tc.chipTheme}
+                onPress={() => {
+                  if (status === 'idle') {
+                    startTimer(timer.id, timer.label, timer.durationSeconds);
+                  } else if (status === 'running') {
+                    cancelTimer(timer.id);
+                  } else {
+                    dismissCompletedTimer(timer.id);
+                  }
+                }}
               />
             );
           })}

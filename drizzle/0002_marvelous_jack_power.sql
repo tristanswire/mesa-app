@@ -1,0 +1,1 @@
+ALTER TABLE `user_preferences` ADD `timer_sound_enabled` integer DEFAULT true NOT NULL;

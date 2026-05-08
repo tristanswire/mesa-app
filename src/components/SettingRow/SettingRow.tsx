@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Switch } from 'react-native';
 import type { LucideProps } from 'lucide-react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { colors, radii, spacing } from '../../theme';
@@ -10,9 +10,13 @@ type LucideIcon = React.ComponentType<LucideProps>;
 export interface SettingRowProps {
   icon?: LucideIcon;
   label: string;
-  onPress: () => void;
   isLast?: boolean;
-  variant?: 'list' | 'card';
+  variant?: 'list' | 'card' | 'toggle';
+  // For variant !== 'toggle'
+  onPress?: () => void;
+  // For variant === 'toggle'
+  value?: boolean;
+  onValueChange?: (next: boolean) => void;
 }
 
 export function SettingRow({
@@ -21,8 +25,49 @@ export function SettingRow({
   onPress,
   isLast = false,
   variant = 'list',
+  value = false,
+  onValueChange,
 }: SettingRowProps) {
   const isCard = variant === 'card';
+  const isToggle = variant === 'toggle';
+
+  const content = (
+    <>
+      {Icon && <Icon size={20} color={colors.ink} strokeWidth={1.5} />}
+      <Text role="body" style={styles.label}>{label}</Text>
+      {isToggle ? (
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ false: colors.oat, true: colors.terracotta }}
+          thumbColor={colors.cream}
+          ios_backgroundColor={colors.oat}
+        />
+      ) : (
+        <ChevronRight size={20} color={colors.oliveDark} strokeWidth={1.5} />
+      )}
+    </>
+  );
+
+  // Toggle rows: tapping the row also flips the switch
+  if (isToggle) {
+    return (
+      <Pressable
+        onPress={() => onValueChange?.(!value)}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        accessibilityLabel={label}
+        style={({ pressed }) => [
+          styles.base,
+          styles.list,
+          !isLast && styles.listBorder,
+          pressed && { opacity: 0.6 },
+        ]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -35,11 +80,7 @@ export function SettingRow({
         pressed && { opacity: 0.6 },
       ]}
     >
-      {Icon && (
-        <Icon size={20} color={colors.ink} strokeWidth={1.5} />
-      )}
-      <Text role="body" style={styles.label}>{label}</Text>
-      <ChevronRight size={20} color={colors.oliveDark} strokeWidth={1.5} />
+      {content}
     </Pressable>
   );
 }
@@ -49,7 +90,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // variant="list" — transparent bg, bottom border, label flush left
   list: {
     paddingVertical: spacing.base,
     gap: spacing.md,
@@ -58,7 +98,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.oat,
   },
-  // variant="card" — oat bg, rounded, standalone
   card: {
     backgroundColor: colors.oat,
     borderRadius: radii.md,

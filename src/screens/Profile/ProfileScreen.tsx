@@ -2,12 +2,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { User } from 'lucide-react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
+import { getUserPreferences, setTimerSoundEnabled } from '../../data/preferences';
 import type { MainStackParamList, RootStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -28,6 +29,13 @@ export function ProfileScreen() {
   const mainNav = useNavigation<MainNav>();
   const rootNav = useNavigation<RootNav>();
   const insets = useSafeAreaInsets();
+
+  const [timerSoundOn, setTimerSoundOn] = useState(true);
+  useEffect(() => {
+    getUserPreferences()
+      .then((p) => setTimerSoundOn(p.timerSoundEnabled))
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -97,6 +105,15 @@ export function ProfileScreen() {
           <SettingRow
             label="Default serving size"
             onPress={() => { /* TODO Phase 3: serving size picker */ }}
+          />
+          <SettingRow
+            variant="toggle"
+            label="Timer sound"
+            value={timerSoundOn}
+            onValueChange={(next) => {
+              setTimerSoundOn(next);
+              setTimerSoundEnabled(next).catch((e) => console.error('[profile] failed to save timer sound preference', e));
+            }}
             isLast
           />
         </View>

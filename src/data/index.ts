@@ -4,3 +4,4 @@ export * from './prepItems';
 export * from './cooks';
 export * from './ratings';
 export * from './import';
+export * from './preferences';

@@ -182,7 +182,7 @@ export function ShowcaseScreen() {
           stepNumber={2} totalSteps={5} theme="dark"
           content={
             <Text role="cookModeBody">
-              Heat{' '}<IngredientChip label="2 tbsp olive oil" theme="dark" />{' '}in a large pan over medium heat, then add{' '}<IngredientChip label="3 cloves garlic" theme="dark" />{' '}and cook for{' '}<TimerToken label="bake 18 min" durationSeconds={1080} theme="dark" isActive={false} />{' '}until fragrant.
+              Heat{' '}<IngredientChip label="2 tbsp olive oil" theme="dark" />{' '}in a large pan over medium heat, then add{' '}<IngredientChip label="3 cloves garlic" theme="dark" />{' '}and cook for{' '}<TimerToken label="bake 18 min" theme="dark" status="idle" />{' '}until fragrant.
             </Text>
           }
           nextPreview="Add the tomatoes and stir to combine."
@@ -192,7 +192,7 @@ export function ShowcaseScreen() {
           stepNumber={3} totalSteps={5} theme="dark"
           content={
             <Text role="cookModeBody">
-              Add{' '}<IngredientChip label="1 cup broth" theme="dark" />{' '}and{' '}<IngredientChip label="1 tsp salt" theme="dark" />{', '}then simmer for{' '}<TimerToken label="17:42" durationSeconds={1062} theme="dark" isActive />{'.'}
+              Add{' '}<IngredientChip label="1 cup broth" theme="dark" />{' '}and{' '}<IngredientChip label="1 tsp salt" theme="dark" />{', '}then simmer for{' '}<TimerToken label="simmer 17 min" theme="dark" status="running" remainingSeconds={1062} />{'.'}
             </Text>
           }
           nextPreview="Stir in the cream and reduce heat to low."
@@ -204,7 +204,7 @@ export function ShowcaseScreen() {
           stepNumber={1} totalSteps={3} theme="light"
           content={
             <Text role="cookModeBody" color="ink">
-              Bring a large pot of salted water to a boil. Add{' '}<IngredientChip label="200g pasta" theme="light" />{' '}and cook for{' '}<TimerToken label="9 min" durationSeconds={540} theme="light" isActive={false} />.
+              Bring a large pot of salted water to a boil. Add{' '}<IngredientChip label="200g pasta" theme="light" />{' '}and cook for{' '}<TimerToken label="9 min" theme="light" status="idle" />.
             </Text>
           }
           nextPreview="Drain and reserve 1 cup of pasta water."

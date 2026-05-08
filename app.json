@@ -21,7 +21,16 @@
     ],
     "plugins": [
       "expo-font",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/timer-complete.wav"
+          ]
+        }
+      ],
+      "expo-audio"
     ]
   }
 }

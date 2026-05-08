@@ -109,5 +109,8 @@ export const userPreferences = sqliteTable('user_preferences', {
   hasCompletedOnboarding: integer('has_completed_onboarding', { mode: 'boolean' })
     .notNull()
     .default(false),
+  timerSoundEnabled: integer('timer_sound_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(true),
   syncedAt: text('synced_at'),
 });
