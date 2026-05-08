@@ -47,12 +47,23 @@ export function AhaMomentScreen() {
       console.error('[onboarding] failed to persist defaults', e);
     }
 
+    // Import lives inside MainNavigator (sibling of Tabs), not at the root.
+    // Drop the Onboarding stack and seed Main's stack so it lands on Import
+    // with Tabs underneath — back-from-Import returns to Tabs naturally.
     navigation.dispatch(
       CommonActions.reset({
-        index: 1,
+        index: 0,
         routes: [
-          { name: 'Main' },
-          { name: 'Import', params: { prefilledUrl: DEMO_RECIPE_URL } },
+          {
+            name: 'Main',
+            state: {
+              index: 1,
+              routes: [
+                { name: 'Tabs' },
+                { name: 'Import', params: { prefilledUrl: DEMO_RECIPE_URL } },
+              ],
+            },
+          },
         ],
       }),
     );
