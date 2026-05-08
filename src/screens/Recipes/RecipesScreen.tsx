@@ -2,20 +2,21 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChefHat, Search } from 'lucide-react-native';
+import { Bookmark, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
 import { FAB } from '../../components/FAB';
 import { Input } from '../../components/Input';
 import { Pill } from '../../components/Pill';
 import { RecipeCard } from '../../components/RecipeCard';
+import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useRecipesList } from '../../data/hooks';
 import type { RecipeListItem } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, spacing } from '../../theme';
+import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -81,6 +82,23 @@ function ScreenHeader({
   );
 }
 
+// 4 placeholder cards to fill the visible viewport while data loads.
+function GridSkeleton() {
+  return (
+    <View style={styles.skeletonGrid}>
+      {[0, 1, 2, 3].map((i) => (
+        <View key={i} style={styles.skeletonCard}>
+          <Skeleton height={140} borderRadius={radii.md} />
+          <View style={{ height: spacing.sm }} />
+          <Skeleton height={14} width="80%" />
+          <View style={{ height: spacing.xs }} />
+          <Skeleton height={12} width="40%" />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function RecipesScreen() {
@@ -96,11 +114,8 @@ export function RecipesScreen() {
     setActiveFilter(filter);
   };
 
-  if (!ready) {
-    return <View style={[styles.root, { backgroundColor: colors.cream }]} />;
-  }
-
-  const showEmptyState = recipes.length === 0;
+  const showSkeleton = !ready;
+  const showEmptyState = ready && recipes.length === 0;
 
   const renderItem = ({ item }: { item: RecipeListItem }) => (
     <View style={styles.cardItem}>
@@ -122,7 +137,7 @@ export function RecipesScreen() {
     <>
       <StatusBar style="dark" />
       <View style={styles.root}>
-        {showEmptyState ? (
+        {showSkeleton ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
@@ -136,22 +151,32 @@ export function RecipesScreen() {
               activeFilter={activeFilter}
               onFilterPress={handleFilterPress}
             />
-            <View style={styles.emptyState}>
-              <ChefHat size={48} color={colors.clay} strokeWidth={1.5} />
-              <View style={{ height: spacing.md }} />
-              <Text role="headline" align="center">Your recipe bank is empty.</Text>
-              <View style={{ height: spacing.xs }} />
-              <Text role="caption" color="oliveDark" align="center">
-                Everything you import shows up here.
-              </Text>
-              <View style={{ height: spacing.lg }} />
-              <Button
-                variant="primary"
-                label="Import a recipe"
-                onPress={() => navigation.navigate('Import')}
-              />
-            </View>
+            <GridSkeleton />
           </ScrollView>
+        ) : showEmptyState ? (
+          <View style={styles.emptyRoot}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingTop: insets.top + spacing.lg, flexGrow: 1 },
+              ]}
+            >
+              <ScreenHeader
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activeFilter={activeFilter}
+                onFilterPress={handleFilterPress}
+              />
+              <EmptyState
+                icon={Bookmark}
+                title="No recipes yet."
+                description="Import a recipe from any cooking site, take a photo, or enter one manually. Your library starts here."
+                ctaLabel="Import a recipe"
+                onCta={() => navigation.navigate('Import')}
+              />
+            </ScrollView>
+          </View>
         ) : (
           <FlatList
             data={recipes}
@@ -190,6 +215,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.cream,
   },
+  emptyRoot: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
@@ -210,9 +238,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: spacing.md,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  // 50% with the gap baked in, so two cards per row align with the real grid.
+  skeletonCard: {
+    width: '48%',
   },
 });

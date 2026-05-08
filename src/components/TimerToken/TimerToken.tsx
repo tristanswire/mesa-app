@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     maxWidth: '60%',
     // iOS centers inline Views by content height, not text optical center.
     // Calibrated for 20pt cookModeBody / 30pt lineHeight.
-    transform: [{ translateY: 4 }],
+    transform: [{ translateY: 5 }],
   },
   chipContent: {
     flexDirection: 'row',

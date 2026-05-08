@@ -7,6 +7,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
+import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useProfileStats, useUserPreferences } from '../../data/hooks';
 import {
@@ -89,27 +90,45 @@ export function ProfileScreen() {
         <View style={{ height: spacing.xl }} />
         <View style={styles.statsContainer}>
           <View style={styles.statCol}>
-            <Text role="headline" align="center" style={styles.statNumber}>
-              {String(stats.uniqueRecipes)}
-            </Text>
+            {stats.ready ? (
+              <Text role="headline" align="center" style={styles.statNumber}>
+                {String(stats.uniqueRecipes)}
+              </Text>
+            ) : (
+              <View style={styles.statSkeleton}>
+                <Skeleton height={28} width={40} />
+              </View>
+            )}
             <Text role="caption" color="oliveDark" align="center">Recipes</Text>
           </View>
 
           <View style={styles.statDivider} />
 
           <View style={styles.statCol}>
-            <Text role="headline" align="center" style={styles.statNumber}>
-              0
-            </Text>
+            {stats.ready ? (
+              <Text role="headline" align="center" style={styles.statNumber}>
+                0
+              </Text>
+            ) : (
+              <View style={styles.statSkeleton}>
+                <Skeleton height={28} width={40} />
+              </View>
+            )}
             <Text role="caption" color="oliveDark" align="center">Collections</Text>
           </View>
 
           <View style={styles.statDivider} />
 
           <View style={styles.statCol}>
-            <Text role="headline" align="center" style={styles.statNumber}>
-              {String(stats.cooksThisWeek)}
-            </Text>
+            {stats.ready ? (
+              <Text role="headline" align="center" style={styles.statNumber}>
+                {String(stats.cooksThisWeek)}
+              </Text>
+            ) : (
+              <View style={styles.statSkeleton}>
+                <Skeleton height={28} width={40} />
+              </View>
+            )}
             <Text role="caption" color="oliveDark" align="center">This week</Text>
           </View>
         </View>
@@ -245,6 +264,13 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontWeight: '700',
+  },
+  // Match the headline's vertical footprint so the row doesn't shift
+  // when real numbers replace the skeleton.
+  statSkeleton: {
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statDivider: {
     width: 1,

@@ -10,10 +10,11 @@ import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { RecipeImagePlaceholder } from '../../components/RecipeImagePlaceholder';
 import { SectionLabel } from '../../components/SectionLabel';
+import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, spacing } from '../../theme';
+import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'RecipeDetail'>;
@@ -34,7 +35,44 @@ export function RecipeDetailScreen() {
   }, [loading, error, recipe, navigation]);
 
   if (loading || !recipe) {
-    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream }}>
+        {/* Hero image placeholder — full width, edge-to-edge */}
+        <Skeleton height={280} width="100%" borderRadius={0} />
+
+        {/* Header row placeholder — same shape as the real header */}
+        <View style={[styles.headerRow, styles.skeletonHeaderRow]}>
+          <View style={styles.headerSidePlaceholder} />
+          <Skeleton height={20} width={200} />
+          <View style={styles.headerSidePlaceholder} />
+        </View>
+
+        {/* Metadata */}
+        <View style={[styles.section, styles.skeletonMetadata]}>
+          <Skeleton height={14} width="60%" />
+        </View>
+
+        {/* CTA row + ingredients */}
+        <View style={[styles.section, styles.skeletonStack]}>
+          <View style={styles.skeletonCtaRow}>
+            <View style={styles.skeletonCta}>
+              <Skeleton height={48} borderRadius={radii.md} />
+            </View>
+            <View style={styles.skeletonCta}>
+              <Skeleton height={48} borderRadius={radii.md} />
+            </View>
+          </View>
+          <View style={{ height: spacing.lg }} />
+          <Skeleton height={11} width="35%" />
+          <View style={{ height: spacing.md }} />
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.skeletonIngredientRow}>
+              <Skeleton height={14} width="90%" />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
   }
 
   const visibleIngredients = ingredientsExpanded
@@ -251,5 +289,30 @@ const styles = StyleSheet.create({
   },
   ingredientText: {
     flex: 1,
+  },
+  // ── Skeleton placeholders ───────────────────────────────────────────
+  skeletonHeaderRow: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.md,
+  },
+  headerSidePlaceholder: {
+    width: 40,
+    height: 40,
+  },
+  skeletonMetadata: {
+    paddingTop: spacing.md,
+  },
+  skeletonStack: {
+    paddingTop: spacing.lg,
+  },
+  skeletonCtaRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  skeletonCta: {
+    flex: 1,
+  },
+  skeletonIngredientRow: {
+    marginBottom: spacing.sm,
   },
 });

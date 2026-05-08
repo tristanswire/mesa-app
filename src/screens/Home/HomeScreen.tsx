@@ -5,15 +5,16 @@ import { ChefHat } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
 import { FAB } from '../../components/FAB';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SectionLabel } from '../../components/SectionLabel';
+import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useHomeData } from '../../data/hooks';
 import type { RecipeListItem } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
-import { colors, spacing } from '../../theme';
+import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -34,10 +35,77 @@ export function HomeScreen() {
   const { lastCooked, inYourBank, worthATry, ready } = useHomeData();
 
   if (!ready) {
-    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+    return (
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + spacing.lg },
+          ]}
+        >
+          <SectionLabel>{GREETING}</SectionLabel>
+          <View style={{ height: spacing.xs }} />
+          <Skeleton height={32} width="80%" />
+
+          <View style={{ height: spacing.lg }} />
+
+          {/* Hero card skeleton */}
+          <Skeleton height={200} borderRadius={radii.md} />
+          <View style={{ height: spacing.md }} />
+          <Skeleton height={11} width="30%" />
+          <View style={{ height: spacing.xs }} />
+          <Skeleton height={20} width="70%" />
+          <View style={{ height: spacing.sm }} />
+          <Skeleton height={13} width="40%" />
+
+          <View style={{ height: spacing.xl }} />
+
+          <SectionLabel>IN YOUR BANK</SectionLabel>
+          <View style={{ height: spacing.md }} />
+
+          {/* Horizontal row skeleton — 2 cards visible */}
+          <View style={styles.bankRow}>
+            {[0, 1].map((i) => (
+              <View key={i} style={[styles.bankCard, { width: cardWidth }]}>
+                <Skeleton height={120} borderRadius={radii.md} />
+                <View style={{ height: spacing.sm }} />
+                <Skeleton height={14} width="80%" />
+                <View style={{ height: spacing.xs }} />
+                <Skeleton height={12} width="50%" />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
   }
 
-  const showEmptyState = !lastCooked && inYourBank.length === 0;
+  const showEmptyState = !lastCooked && inYourBank.length === 0 && worthATry.length === 0;
+
+  if (showEmptyState) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <View style={styles.root}>
+          <View style={[styles.emptyContainer, { paddingTop: insets.top + spacing.xxl }]}>
+            <EmptyState
+              icon={ChefHat}
+              title="Welcome to Mesa."
+              description="Import your first recipe to start your library, then come back here to pick up where you left off."
+              ctaLabel="Import a recipe"
+              onCta={() => navigation.navigate('Import')}
+            />
+          </View>
+          <FAB
+            onPress={() => navigation.navigate('Import')}
+            accessibilityLabel="Import a recipe"
+          />
+        </View>
+      </>
+    );
+  }
 
   const renderHorizontalCard = (item: RecipeListItem) => (
     <View key={item.id} style={[styles.cardWrap, { width: cardWidth }]}>
@@ -66,68 +134,44 @@ export function HomeScreen() {
         >
           {/* Greeting */}
           <SectionLabel>{GREETING}</SectionLabel>
+          <View style={{ height: spacing.xs }} />
+          <Text role="headline">Pick up where you left off.</Text>
 
-          {showEmptyState ? (
-            /* ── Empty state ────────────────────────────────────────── */
-            <View style={styles.emptyState}>
-              <View style={{ height: spacing.xl }} />
-              <ChefHat size={48} color={colors.clay} strokeWidth={1.5} />
-              <View style={{ height: spacing.md }} />
-              <Text role="headline">Let's cook something.</Text>
-              <View style={{ height: spacing.xs }} />
-              <Text role="caption" color="oliveDark">
-                Import your first recipe to get started.
-              </Text>
-              <View style={{ height: spacing.lg }} />
-              <Button
-                variant="primary"
-                label="Import a recipe"
-                onPress={() => navigation.navigate('Import')}
-              />
-            </View>
-          ) : (
-            /* ── Populated state ─────────────────────────────────────── */
+          {/* Hero — last cooked */}
+          {lastCooked && (
             <>
-              <View style={{ height: spacing.xs }} />
-              <Text role="headline">Pick up where you left off.</Text>
+              <View style={{ height: spacing.base }} />
+              <RecipeCard
+                variant="hero"
+                label="LAST COOKED"
+                title={lastCooked.title}
+                duration={lastCooked.duration}
+                tag={lastCooked.tag ?? undefined}
+                tintKey={asTintKey(lastCooked.tintKey)}
+                imageUrl={lastCooked.imageUrl}
+                ctaLabel="Cook Again →"
+                onPress={() =>
+                  navigation.navigate('RecipeDetail', { recipeId: lastCooked.id })
+                }
+              />
+            </>
+          )}
 
-              {/* Hero — last cooked */}
-              {lastCooked && (
-                <>
-                  <View style={{ height: spacing.base }} />
-                  <RecipeCard
-                    variant="hero"
-                    label="LAST COOKED"
-                    title={lastCooked.title}
-                    duration={lastCooked.duration}
-                    tag={lastCooked.tag ?? undefined}
-                    tintKey={asTintKey(lastCooked.tintKey)}
-                    imageUrl={lastCooked.imageUrl}
-                    ctaLabel="Cook Again →"
-                    onPress={() =>
-                      navigation.navigate('RecipeDetail', { recipeId: lastCooked.id })
-                    }
-                  />
-                </>
-              )}
-
-              {/* In Your Bank */}
-              {inYourBank.length > 0 && (
-                <>
-                  <View style={{ height: spacing.xl }} />
-                  <SectionLabel>IN YOUR BANK</SectionLabel>
-                  <View style={{ height: spacing.md }} />
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    nestedScrollEnabled
-                    style={styles.horizontalScroll}
-                    contentContainerStyle={styles.horizontalContent}
-                  >
-                    {inYourBank.map(renderHorizontalCard)}
-                  </ScrollView>
-                </>
-              )}
+          {/* In Your Bank */}
+          {inYourBank.length > 0 && (
+            <>
+              <View style={{ height: spacing.xl }} />
+              <SectionLabel>IN YOUR BANK</SectionLabel>
+              <View style={{ height: spacing.md }} />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalContent}
+              >
+                {inYourBank.map(renderHorizontalCard)}
+              </ScrollView>
             </>
           )}
 
@@ -183,7 +227,14 @@ const styles = StyleSheet.create({
   cardWrap: {
     marginRight: spacing.md,
   },
-  emptyState: {
-    alignItems: 'center',
+  bankRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  bankCard: {
+    flexShrink: 0,
+  },
+  emptyContainer: {
+    flex: 1,
   },
 });
