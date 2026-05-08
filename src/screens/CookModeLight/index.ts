@@ -1,1 +1,0 @@
-export { CookModeLightScreen } from './CookModeLightScreen';

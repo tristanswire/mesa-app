@@ -4,7 +4,6 @@ import {
   RecipeDetailScreen,
   PrepModeScreen,
   CookModeScreen,
-  CookModeLightScreen,
   PostCookScreen,
   ImportScreen,
   ShowcaseScreen,
@@ -24,7 +23,6 @@ export function MainNavigator() {
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
       <Stack.Screen name="PrepMode" component={PrepModeScreen} />
       <Stack.Screen name="CookMode" component={CookModeScreen} />
-      <Stack.Screen name="CookModeLight" component={CookModeLightScreen} />
       <Stack.Screen name="PostCook" component={PostCookScreen} />
       <Stack.Screen name="Showcase" component={ShowcaseScreen} />
 

@@ -4,7 +4,6 @@ export { ProfileScreen } from './Profile';
 export { RecipeDetailScreen } from './RecipeDetail';
 export { PrepModeScreen } from './PrepMode';
 export { CookModeScreen } from './CookMode';
-export { CookModeLightScreen } from './CookModeLight';
 export { PostCookScreen } from './PostCook';
 export { ImportScreen } from './Import';
 export { ValuePropScreen, AhaMomentScreen, PreferencesScreen } from './Onboarding';

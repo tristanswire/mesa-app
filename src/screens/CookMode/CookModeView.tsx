@@ -5,8 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { MoreVertical, Sun } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActionSheetIOS, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
@@ -73,13 +73,21 @@ function stepToPlainText(step: RecipeStep): string {
   }).join('');
 }
 
+export type CookModeTheme = 'dark' | 'light';
+
 export type CookModeViewProps = {
   recipeId: string;
   initialStepIndex?: number;
-  theme: 'dark' | 'light';
+  theme: CookModeTheme;
+  onToggleTheme?: () => void;
 };
 
-export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookModeViewProps) {
+export function CookModeView({
+  recipeId,
+  initialStepIndex = 0,
+  theme,
+  onToggleTheme,
+}: CookModeViewProps) {
   useKeepAwake();
 
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
@@ -88,6 +96,19 @@ export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookMode
 
   const { data: recipe, loading } = useRecipeDetail(recipeId);
   const { timers, startTimer, cancelTimer, dismissCompletedTimer } = useTimerManager();
+
+  const showOverflow = useCallback(() => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', theme === 'dark' ? 'Switch to light' : 'Switch to dark'],
+        cancelButtonIndex: 0,
+        userInterfaceStyle: theme,
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) onToggleTheme?.();
+      },
+    );
+  }, [theme, onToggleTheme]);
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
 
@@ -124,15 +145,6 @@ export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookMode
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.base }]}>
         <SectionLabel color="clay">{`STEP ${stepIndex + 1} OF ${steps.length}`}</SectionLabel>
         <View style={styles.topBarRight}>
-          {/* TODO Phase 3 removes this — replaced by useColorScheme() auto-switching */}
-          {theme === 'dark' && (
-            <Pressable
-              onPress={() => navigation.navigate('CookModeLight', { recipeId, stepIndex })}
-              hitSlop={8}
-            >
-              <Text role="caption" color="creamMuted">Light variant →</Text>
-            </Pressable>
-          )}
           {tc.showSunIcon && (
             <Sun size={16} color={colors.clay} strokeWidth={1.5} />
           )}
@@ -140,9 +152,7 @@ export function CookModeView({ recipeId, initialStepIndex = 0, theme }: CookMode
             icon={MoreVertical}
             tint={tc.overflowTint}
             size="md"
-            onPress={() => {
-              // TODO Phase 3: cook mode options (exit, light/dark toggle, text size)
-            }}
+            onPress={showOverflow}
             accessibilityLabel="Cooking options"
           />
         </View>
