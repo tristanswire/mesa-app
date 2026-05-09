@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "scheme": "mesa",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,7 +15,15 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tristanswire.mesa"
+      "bundleIdentifier": "com.tristanswire.mesa",
+      "infoPlist": {
+        "AppGroup": "group.com.tristanswire.mesa.shared"
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.tristanswire.mesa.shared"
+        ]
+      }
     },
     "platforms": [
       "ios"
@@ -31,7 +40,15 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-share-extension",
+        {
+          "activationRules": [
+            { "type": "url", "max": 1 }
+          ]
+        }
+      ]
     ]
   }
 }
