@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, gte, isNotNull, or } from 'drizzle-orm';
 import * as Crypto from 'expo-crypto';
 import { db } from '../db/client';
 import { cooks } from '../db/schema';
@@ -74,6 +74,12 @@ export async function getMostRecentCompletedCook(
         eq(cooks.userId, userId),
         eq(cooks.recipeId, recipeId),
         isNotNull(cooks.completedAt),
+        // Skip cooks where the user didn't record any feedback —
+        // an X-dismissed re-cook shouldn't shadow earlier rated cooks.
+        or(
+          isNotNull(cooks.rating),
+          isNotNull(cooks.notes),
+        ),
       ),
     )
     .orderBy(desc(cooks.completedAt))

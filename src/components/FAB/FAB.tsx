@@ -11,9 +11,10 @@ export interface FABProps {
   icon?: LucideIcon;
   onPress: () => void;
   accessibilityLabel: string;
+  testID?: string;
 }
 
-export function FAB({ icon: Icon = Plus, onPress, accessibilityLabel }: FABProps) {
+export function FAB({ icon: Icon = Plus, onPress, accessibilityLabel, testID }: FABProps) {
   const handlePress = async () => {
     await Haptics.impactAsync(ImpactFeedbackStyle.Light);
     onPress();
@@ -24,6 +25,7 @@ export function FAB({ icon: Icon = Plus, onPress, accessibilityLabel }: FABProps
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       style={({ pressed }) => [
         styles.fab,
         {

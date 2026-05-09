@@ -1,0 +1,12 @@
+appId: com.tristanswire.mesa
+---
+# Fresh-install onboarding flow: ValueProp -> AhaMoment -> Import modal -> Home.
+- launchApp:
+    clearState: true
+- assertVisible: "Turn any recipe into"
+- tapOn: "Try it"
+- assertVisible: "Watch what Mesa does."
+- tapOn: "Import your first recipe"
+- assertVisible: "Import a Recipe"
+- back
+- assertVisible: "Pick up where you left off"

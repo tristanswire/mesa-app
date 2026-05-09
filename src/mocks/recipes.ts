@@ -146,7 +146,7 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
     ],
     tools: [
       { id: 'tool-1', name: 'Nordic Ware Half Sheet Pan', price: '$28', partner: 'Amazon' },
-      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Sur La Table' },
+      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Amazon' },
       { id: 'tool-3', name: 'OXO Good Grips Can Opener', price: '$12', partner: 'Amazon' },
     ],
   },
@@ -218,7 +218,7 @@ export const MOCK_RECIPES: Record<string, MockRecipe> = {
     ],
     tools: [
       { id: 'tool-1', name: 'Nordic Ware Half Sheet Pan', price: '$28', partner: 'Amazon' },
-      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Sur La Table' },
+      { id: 'tool-2', name: 'Microplane Classic Zester', price: '$15', partner: 'Amazon' },
     ],
   },
 

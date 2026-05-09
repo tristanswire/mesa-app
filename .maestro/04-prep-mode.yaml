@@ -1,0 +1,10 @@
+appId: com.tristanswire.mesa
+---
+# Prep Mode -> Begin Cooking -> Cook Mode.
+- launchApp
+- tapOn: "Recipes"
+- tapOn: "Sheet-pan Harissa Chicken"
+- tapOn: "Start Prep"
+- assertVisible: "Before you start cooking"
+- tapOn: "Begin Cooking"
+- assertVisible: "STEP 1"

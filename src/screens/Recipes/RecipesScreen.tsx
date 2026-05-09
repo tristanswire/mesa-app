@@ -202,6 +202,7 @@ export function RecipesScreen() {
         <FAB
           onPress={() => navigation.navigate('Import')}
           accessibilityLabel="Import a recipe"
+          testID="fab-import"
         />
       </View>
     </>

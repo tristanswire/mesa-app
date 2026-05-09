@@ -1,0 +1,10 @@
+appId: com.tristanswire.mesa
+---
+# Recipe Detail loads -> Cook Mode launches -> Step 1 renders.
+- launchApp
+- tapOn: "Recipes"
+- tapOn: "Sheet-pan Harissa Chicken"
+- assertVisible: "INGREDIENTS"
+- assertVisible: "Start Cooking"
+- tapOn: "Start Cooking"
+- assertVisible: "STEP 1"

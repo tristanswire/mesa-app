@@ -30,7 +30,8 @@
           ]
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ]
   }
 }

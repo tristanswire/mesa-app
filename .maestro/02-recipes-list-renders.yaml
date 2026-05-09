@@ -1,0 +1,8 @@
+appId: com.tristanswire.mesa
+---
+# Recipes tab loads with seeded data visible.
+- launchApp
+- tapOn: "Recipes"
+- assertVisible: "My Recipes"
+- assertVisible: "Search recipes, ingredients"
+- assertVisible: "Sheet-pan Harissa Chicken"

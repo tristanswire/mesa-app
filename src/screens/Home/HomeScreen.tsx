@@ -101,6 +101,7 @@ export function HomeScreen() {
           <FAB
             onPress={() => navigation.navigate('Import')}
             accessibilityLabel="Import a recipe"
+            testID="fab-import"
           />
         </View>
       </>
@@ -200,6 +201,7 @@ export function HomeScreen() {
         <FAB
           onPress={() => navigation.navigate('Import')}
           accessibilityLabel="Import a recipe"
+          testID="fab-import"
         />
       </View>
     </>

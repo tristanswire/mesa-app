@@ -1,0 +1,14 @@
+appId: com.tristanswire.mesa
+---
+# End-to-end import via the Edge Function. Costs ~$0.014 per run -- run sparingly.
+- launchApp
+- tapOn:
+    id: "fab-import"
+- assertVisible: "Import a Recipe"
+- tapOn: "Paste a recipe link"
+- inputText: "https://www.bonappetit.com/recipe/bas-best-chocolate-chip-cookies"
+- tapOn: "Import"
+# Edge Function parse + import takes 5-15 seconds; allow 30s.
+- assertVisible:
+    text: "BA's Best Chocolate Chip Cookies"
+    timeout: 30000
