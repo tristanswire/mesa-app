@@ -1,46 +1,41 @@
 import React from 'react';
-import { StyleSheet, Text as RNText, View } from 'react-native';
-import { colors, radii, spacing, typography } from '../../theme';
+import { StyleSheet, Text as RNText } from 'react-native';
+import { typography } from '../../theme';
 
 export interface IngredientChipProps {
   label: string;
   theme?: 'dark' | 'light';
 }
 
+// In Cook Mode body text the ingredient is now a highlighter mark, not a pill.
+// We render a nested <Text> so the background flows inline with the prose and
+// wraps naturally across line breaks. Font weight matches surrounding body
+// (500) — no bold, no border-radius, no alignSelf hacks.
 export function IngredientChip({ label, theme = 'dark' }: IngredientChipProps) {
-  const fg = theme === 'dark' ? colors.pine : colors.ink;
+  const highlightStyle = theme === 'dark' ? styles.highlightDark : styles.highlightLight;
 
-  return (
-    // View-in-Text: on iOS, a <View> as a direct child of <Text> renders inline and
-    // RN centers it on the line height when no transform is applied. alignSelf:'center'
-    // keeps the chip baseline-aligned with surrounding text across line wraps.
-    <View style={[styles.chip, { backgroundColor: colors.oat }]}>
-      <RNText
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        style={[styles.label, { color: fg }]}
-      >
-        {label}
-      </RNText>
-    </View>
-  );
+  // No internal padding — the parent body's segment strings already carry
+  // surrounding whitespace (e.g. "Heat " + chip + " in a pan"), so adding
+  // spaces here would double-space. The highlight reads tight by design,
+  // matching a textmark / highlighter marking a phrase.
+  return <RNText style={[styles.label, highlightStyle]}>{label}</RNText>;
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.sm,
-    alignSelf: 'center',
-    maxWidth: '60%',
-    // iOS centers inline Views by content height, not text optical center.
-    // Calibrated for 20pt cookModeBody / 30pt lineHeight.
-    transform: [{ translateY: 5 }],
-  },
   label: {
-    fontFamily: typography.cookModeIngredientChip.fontFamily,
-    fontSize: typography.cookModeIngredientChip.fontSize,
-    fontWeight: '700',
-    lineHeight: 20,
+    fontFamily: typography.cookModeBody.fontFamily,
+    fontSize: typography.cookModeBody.fontSize,
+    fontWeight: '500',
+    lineHeight: typography.cookModeBody.lineHeight,
+  },
+  // Terracotta @ 25% over Pine — passive textmark, not a button
+  highlightDark: {
+    backgroundColor: 'rgba(138, 58, 30, 0.25)',
+    color: '#F7F2EA',
+  },
+  // Clay @ 40% over Cream
+  highlightLight: {
+    backgroundColor: 'rgba(201, 143, 99, 0.4)',
+    color: '#1F1C19',
   },
 });
