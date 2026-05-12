@@ -1,0 +1,67 @@
+{
+  "source": "https://minimalistbaker.com/easy-vegan-fried-rice/",
+  "expectedSteps": 10,
+  "note": "Well-formed HowToStep[] (long). WPRM site emitting separate step objects.",
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "text": "Preheat oven to 400 degrees F (204 C) and line a baking sheet with parchment paper (or lightly grease with non-stick spray).",
+      "name": "Preheat oven to 400 degrees F (204 C) and line a baking sheet with parchment paper (or lightly grease with non-stick spray).",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-0"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "In the meantime wrap tofu in a clean, absorbent towel and set something heavy on top (such as a cast iron skillet) to press out the liquid.",
+      "name": "In the meantime wrap tofu in a clean, absorbent towel and set something heavy on top (such as a cast iron skillet) to press out the liquid.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-1"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Once the oven is preheated, dice tofu into 1/4-inch cubes and arrange on baking sheet. Bake for 26-30 minutes. You’re looking for golden brown edges and a texture that’s firm to the touch. The longer it bakes, the firmer and crispier it will become, so if you’re looking for softer tofu remove from the oven around the 26-28 minute mark. I prefer crispy tofu, so I bake mine the full 30 minutes. Set aside.",
+      "name": "Once the oven is preheated, dice tofu into 1/4-inch cubes and arrange on baking sheet. Bake for 26-30 minutes. You’re looking for golden brown edges and a texture that’s firm to the touch. The longer it bakes, the firmer and crispier it will become, so if you’re looking for softer tofu remove from the oven around the 26-28 minute mark. I prefer crispy tofu, so I bake mine the full 30 minutes. Set aside.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-2"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "While the tofu bakes prepare your rice by bringing 12 cups of water to a boil in a large pot. Once boiling, add rinsed rice and stir. Boil on high uncovered for 30 minutes, then strain for 10 seconds and return to pot removed from the heat. Cover with a lid and let steam for 10 minutes*.",
+      "name": "While the tofu bakes prepare your rice by bringing 12 cups of water to a boil in a large pot. Once boiling, add rinsed rice and stir. Boil on high uncovered for 30 minutes, then strain for 10 seconds and return to pot removed from the heat. Cover with a lid and let steam for 10 minutes*.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-3"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "While rice and tofu are cooking, prepare sauce by adding all ingredients to a medium-size mixing bowl and whisking to combine. Taste and adjust flavor as needed, adding more tamari or soy sauce for saltiness, peanut butter for creaminess, brown sugar for sweetness, or chili garlic sauce for heat.",
+      "name": "While rice and tofu are cooking, prepare sauce by adding all ingredients to a medium-size mixing bowl and whisking to combine. Taste and adjust flavor as needed, adding more tamari or soy sauce for saltiness, peanut butter for creaminess, brown sugar for sweetness, or chili garlic sauce for heat.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-4"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Once the tofu is done baking, add directly to the sauce and marinate for 5 minutes, stirring occasionally.",
+      "name": "Once the tofu is done baking, add directly to the sauce and marinate for 5 minutes, stirring occasionally.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-5"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Heat a large metal or cast iron skillet over medium heat. Once hot, use a slotted spoon to scoop the tofu into the pan leaving most of the sauce behind. Cook for 3-4 minutes, stirring occasionally, until deep golden brown on all sides (see photo). Lower heat if browning too quickly. Remove from pan and set aside.",
+      "name": "Heat a large metal or cast iron skillet over medium heat. Once hot, use a slotted spoon to scoop the tofu into the pan leaving most of the sauce behind. Cook for 3-4 minutes, stirring occasionally, until deep golden brown on all sides (see photo). Lower heat if browning too quickly. Remove from pan and set aside.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-6"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "To the still hot pan add garlic, green onion, peas and carrots. Sauté for 3-4 minutes, stirring occasionally, and season with 1 Tbsp (15 ml) tamari or soy sauce (amount as original recipe is written // adjust if altering batch size).",
+      "name": "To the still hot pan add garlic, green onion, peas and carrots. Sauté for 3-4 minutes, stirring occasionally, and season with 1 Tbsp (15 ml) tamari or soy sauce (amount as original recipe is written // adjust if altering batch size).",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-7"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Add cooked rice, tofu, and remaining sauce and stir. Cook over medium-high heat for 3-4 minutes, stirring frequently.",
+      "name": "Add cooked rice, tofu, and remaining sauce and stir. Cook over medium-high heat for 3-4 minutes, stirring frequently.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-8"
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Serve immediately with extra chili garlic sauce or sriracha for heat (optional). Crushed salted, roasted peanuts or cashews make a lovely additional garnish. Leftovers keep well in the refrigerator for 3-4 days, though best when fresh. Reheat in a skillet over medium heat or in the microwave.",
+      "name": "Serve immediately with extra chili garlic sauce or sriracha for heat (optional). Crushed salted, roasted peanuts or cashews make a lovely additional garnish. Leftovers keep well in the refrigerator for 3-4 days, though best when fresh. Reheat in a skillet over medium heat or in the microwave.",
+      "url": "https://minimalistbaker.com/easy-vegan-fried-rice/#wprm-recipe-35513-step-0-9"
+    }
+  ]
+}

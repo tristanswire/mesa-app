@@ -1,0 +1,35 @@
+{
+  "source": "synthetic",
+  "expectedSteps": 4,
+  "note": "Synthetic regression guard for HowToSection nesting. Schema.org allows recipeInstructions to be sectioned (e.g., 'For the cake' / 'For the frosting'), and parseInstructions must recurse into itemListElement.",
+  "recipeInstructions": [
+    {
+      "@type": "HowToSection",
+      "name": "For the cake",
+      "itemListElement": [
+        {
+          "@type": "HowToStep",
+          "text": "Preheat oven to 350°F and grease two 9-inch round cake pans."
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Whisk flour, sugar, baking powder, and salt in a large bowl."
+        }
+      ]
+    },
+    {
+      "@type": "HowToSection",
+      "name": "For the frosting",
+      "itemListElement": [
+        {
+          "@type": "HowToStep",
+          "text": "Beat softened butter until pale and fluffy, about 3 minutes."
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Add powdered sugar gradually and beat until smooth."
+        }
+      ]
+    }
+  ]
+}

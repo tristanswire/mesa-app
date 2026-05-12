@@ -1,0 +1,61 @@
+{
+  "source": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup",
+  "expectedSteps": 3,
+  "note": "Well-formed HowToStep[]. WPRM site emitting separate step objects.",
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "text": "Place all ingredients in the crockpot. Cover and cook on high for 5-6 hours or low for 7-8 hours.",
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup#instruction-step-1",
+      "video": {
+        "@context": "http://schema.org",
+        "@type": "VideoObject",
+        "name": "Detox Lentil Soup Step 1",
+        "description": "Place all ingredients in the crockpot. Cover and cook on high for 5-6 hours or low for 7-8 hours.",
+        "duration": "PT28S",
+        "embedUrl": "https://player.vimeo.com/video/401032366?dnt=1&amp;app_id=122963",
+        "contentUrl": "https://vimeo.com/401032366",
+        "thumbnailUrl": [
+          "https://i.vimeocdn.com/video/869626800-215bc8d5931af4da167d1661f068c28560d6d699fde25731683d93b439ffc495-d_295x166?region=us"
+        ],
+        "uploadDate": "2020-03-26T12:53:52+00:00"
+      }
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Place about 4 cups of soup in a blender with the olive oil. Pulse gently until semi-smooth and creamy-looking (the oil will form a creamy emulsion with the soup). Add back to the pot and stir to combine. Stir in the kale and parsley. Turn the heat off and just let everything chill out for a bit before serving. The taste gets better with time and so does the texture, IMO!",
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup#instruction-step-2",
+      "video": {
+        "@context": "http://schema.org",
+        "@type": "VideoObject",
+        "name": "Detox Lentil Soup Step 2",
+        "description": "Place about 4 cups of soup in a blender with the olive oil. Pulse gently until semi-smooth and creamy-looking (the oil will form a creamy emulsion with the soup). Add back to the pot and stir to combine. Stir in the kale and parsley. Turn the heat off and just let everything chill out for a bit before serving. The taste gets better with time and so does the texture, IMO!",
+        "duration": "PT32S",
+        "embedUrl": "https://player.vimeo.com/video/401032911?dnt=1&amp;app_id=122963",
+        "contentUrl": "https://vimeo.com/401032911",
+        "thumbnailUrl": [
+          "https://i.vimeocdn.com/video/869627575-74f779eedd903c5aab02bf5898b1a28aad690a98eda28e593d200298674ca3aa-d_295x166?region=us"
+        ],
+        "uploadDate": "2020-03-26T12:55:14+00:00"
+      }
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Season to taste (add the sherry, vinegar, and/or lemon juice at this point) and to really go next level, serve with crusty wheat bread and a little Parmesan cheese. It&#8217;s called Detox Balance. 😉",
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup#instruction-step-3",
+      "video": {
+        "@context": "http://schema.org",
+        "@type": "VideoObject",
+        "name": "Detox Lentil Soup Step 3",
+        "description": "Season to taste (add the sherry, vinegar, and/or lemon juice at this point) and to really go next level, serve with crusty wheat bread and a little Parmesan cheese.",
+        "duration": "PT12S",
+        "embedUrl": "https://player.vimeo.com/video/401033453?dnt=1&amp;app_id=122963",
+        "contentUrl": "https://vimeo.com/401033453",
+        "thumbnailUrl": [
+          "https://i.vimeocdn.com/video/869627893-1c6d80d27dce76f5edec77a3c4195f2dc42a0ffa3a72429b0cd0e9f2d8d6d1bd-d_295x166?region=us"
+        ],
+        "uploadDate": "2020-03-26T12:56:39+00:00"
+      }
+    }
+  ]
+}

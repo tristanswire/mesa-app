@@ -1,0 +1,13 @@
+{
+  "source": "https://www.halfbakedharvest.com/creamy-sun-dried-tomato-chicken-pasta/",
+  "expectedSteps": 4,
+  "note": "Bug case: single HowToStep with numbered list embedded in .text. WPRM author wrote all instructions into one textarea.",
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "text": "1. Drain 3 tablespoons of oil from the sun-dried tomato jar into a large pot or skillet with sides. Chop the sun-dried tomatoes and set aside.2. Set the pot over medium-high heat. Add the chicken, 3 teaspoons Italian seasoning, the paprika, and a pinch each of red pepper flakes, salt, and pepper. Cook until golden brown, 5 minutes. Add 1/4 cup parmesan, cook another minute, then remove the chicken from the pot.  3. To the same pot, add the butter, shallot, garlic, and 1 teaspoon Italian seasoning. Cook until fragrant, about 3 minutes. Add 3 1/2 cups water. Bring to a boil, add the pasta, and cook, stirring often, until the pasta is al dente, 8 minutes. Stir in the cream, mustard, parmesan, spinach, and chopped sun-dried tomatoes. Slide the chicken and any juices left on the plate.4. Serve the pasta topped with lemon juice and fresh parmesan.",
+      "name": "1. Drain 3 tablespoons of oil from the sun-dried tomato jar into a large pot or skillet with sides. Chop the sun-dried tomatoes and set aside.2. Set the pot over medium-high heat. Add the chicken, 3 teaspoons Italian seasoning, the paprika, and a pinch each of red pepper flakes, salt, and pepper. Cook until golden brown, 5 minutes. Add 1/4 cup parmesan, cook another minute, then remove the chicken from the pot.  3. To the same pot, add the butter, shallot, garlic, and 1 teaspoon Italian seasoning. Cook until fragrant, about 3 minutes. Add 3 1/2 cups water. Bring to a boil, add the pasta, and cook, stirring often, until the pasta is al dente, 8 minutes. Stir in the cream, mustard, parmesan, spinach, and chopped sun-dried tomatoes. Slide the chicken and any juices left on the plate.4. Serve the pasta topped with lemon juice and fresh parmesan.",
+      "url": "https://www.halfbakedharvest.com/creamy-sun-dried-tomato-chicken-pasta/#wprm-recipe-115871-step-0-0"
+    }
+  ]
+}

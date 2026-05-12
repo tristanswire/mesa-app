@@ -207,7 +207,9 @@ function splitIngredient(text: string): ParsedIngredient {
   return { amount, name, prep };
 }
 
-function parseInstructions(value: any): { text: string }[] {
+// Exported for unit testing — __tests__/parseInstructions.test.ts asserts
+// behavior against fixtures captured from real-world JSON-LD blobs.
+export function parseInstructions(value: any): { text: string }[] {
   if (!Array.isArray(value)) {
     if (typeof value === 'string') {
       return splitStringInstructions(value);
@@ -240,7 +242,54 @@ function parseInstructions(value: any): { text: string }[] {
     }
   }
 
+  // Post-process: some WordPress recipe plugins (notably WP Recipe Maker on
+  // Half Baked Harvest) emit a single HowToStep whose .text contains every
+  // numbered step concatenated, when the recipe author wrote all instructions
+  // into one textarea instead of separate step inputs. Detect that case and
+  // re-split on the embedded numbered prefixes.
+  //
+  // TODO V1.1: even after splitting, the splitStringInstructions fallback for
+  // plain-string recipeInstructions naively splits on sentence boundaries —
+  // so "Cook 5 minutes. Add garlic" becomes two steps. A more careful pass
+  // (likely a small LLM call) would respect cooking semantics. Defer unless
+  // beta feedback surfaces it.
+  if (steps.length === 1) {
+    const split = splitNumberedList(steps[0].text);
+    if (split.length >= 2) return split.map((text) => ({ text }));
+  }
+
   return steps;
+}
+
+// Detect "1. ... 2. ... 3. ..." numbered lists embedded in a single text blob
+// and split into individual steps with the leading prefix stripped.
+//
+// The non-digit predecessor guard (?:^|[^\d]) avoids matching decimals embedded
+// in ingredient amounts (e.g. "1.5 cups"); the period+space marker still allows
+// HBH-style "set aside.2. Set..." with no whitespace between sentences.
+//
+// Returns [] when fewer than 2 numbered prefixes are found, signaling the
+// caller to keep the original single-step output.
+function splitNumberedList(text: string): string[] {
+  const re = /(?:^|[^\d])(\d+\.\s+)/g;
+  const positions: { start: number; end: number }[] = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const prefixStart = m.index + m[0].length - m[1].length;
+    positions.push({ start: prefixStart, end: prefixStart + m[1].length });
+  }
+
+  if (positions.length < 2) return [];
+
+  const pieces: string[] = [];
+  for (let i = 0; i < positions.length; i++) {
+    const sliceStart = positions[i].end;
+    const sliceEnd = i + 1 < positions.length ? positions[i + 1].start : text.length;
+    const piece = text.slice(sliceStart, sliceEnd).trim();
+    if (piece.length > 10) pieces.push(piece);
+  }
+
+  return pieces.length >= 2 ? pieces : [];
 }
 
 function splitStringInstructions(text: string): { text: string }[] {
