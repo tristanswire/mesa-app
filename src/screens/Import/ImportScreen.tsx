@@ -2,7 +2,7 @@ import { CommonActions, useNavigation, useRoute } from '@react-navigation/native
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Camera, ChevronLeft, Link, Pencil, X } from 'lucide-react-native';
+import { ChevronLeft, Link, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,6 @@ import { Button } from '../../components/Button';
 import { ClipboardBanner } from '../../components/ClipboardBanner';
 import { IconButton } from '../../components/IconButton';
 import { Input } from '../../components/Input';
-import { SettingRow } from '../../components/SettingRow';
 import { Text } from '../../components/Text';
 import { importRecipeFromUrl } from '../../data/import';
 import { useClipboardUrl } from '../../hooks/useClipboardUrl';
@@ -90,7 +89,7 @@ export function ImportScreen() {
           {/* ── Subheadline ──────────────────────────────────────────── */}
           <View style={{ height: spacing.base }} />
           <Text role="caption" color="oliveDark" align="center" style={styles.subheadline}>
-            Paste a link, snap a photo, or type it in.
+            Paste a link from any recipe site.
           </Text>
 
           {/* ── Clipboard banner ─────────────────────────────────────── */}
@@ -105,7 +104,7 @@ export function ImportScreen() {
           )}
 
           {/* ── URL input ────────────────────────────────────────────── */}
-          <View style={[styles.paddingH, { marginTop: spacing.md }]}>
+          <View style={[styles.paddingH, { marginTop: spacing.lg }]}>
             <Input
               value={url}
               onChangeText={setUrl}
@@ -131,7 +130,7 @@ export function ImportScreen() {
                 <View style={styles.errorTextStack}>
                   <Text role="body" style={styles.errorTitle}>{importError}</Text>
                   <Text role="caption" color="oliveDark" style={{ marginTop: spacing.xs }}>
-                    Try a different link or use Enter Manually.
+                    Try a different link.
                   </Text>
                 </View>
                 <Pressable
@@ -147,32 +146,8 @@ export function ImportScreen() {
             </View>
           )}
 
-          {/* ── OR divider ───────────────────────────────────────────── */}
-          <View style={styles.orDivider}>
-            <View style={styles.orLine} />
-            <Text role="caption" color="oliveDark" style={styles.orText}>OR</Text>
-            <View style={styles.orLine} />
-          </View>
-
-          {/* ── Option rows ──────────────────────────────────────────── */}
-          <View style={styles.paddingH}>
-            <SettingRow
-              variant="card"
-              icon={Camera}
-              label="Take a Photo"
-              onPress={() => { /* TODO Phase 3: launch camera */ }}
-            />
-            <View style={{ height: spacing.md }} />
-            <SettingRow
-              variant="card"
-              icon={Pencil}
-              label="Enter Manually"
-              onPress={() => { /* TODO Phase 3: open manual entry */ }}
-            />
-          </View>
-
           {/* ── Supported sites footer ───────────────────────────────── */}
-          <View style={{ height: spacing.xl }} />
+          <View style={{ height: spacing.xxl }} />
           <Text role="caption" color="terracotta" align="center">
             Mesa supports most recipe sites.
           </Text>
@@ -220,21 +195,6 @@ const styles = StyleSheet.create({
   },
   subheadline: {
     paddingHorizontal: spacing.lg,
-  },
-  orDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  orLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.oat,
-  },
-  orText: {
-    letterSpacing: 1,
   },
   errorSheet: {
     flexDirection: 'row',
