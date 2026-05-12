@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { ImpactFeedbackStyle } from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { MoreVertical, Sun } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { ActionSheetIOS, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
@@ -36,6 +37,9 @@ type CookTheme = {
   chipTheme: 'dark' | 'light';
   dotInactive: string;
   showSunIcon: boolean;
+  // For the bottom fade gradient above the nav bar — must match `background`
+  // in rgb so the gradient resolves transparent -> background cleanly.
+  fadeColor: [string, string];
 };
 
 const THEMES: Record<'dark' | 'light', CookTheme> = {
@@ -50,6 +54,7 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
     chipTheme: 'dark',
     dotInactive: 'rgba(247, 242, 234, 0.3)',
     showSunIcon: false,
+    fadeColor: ['rgba(54, 64, 50, 0)', 'rgba(54, 64, 50, 1)'],
   },
   light: {
     background: colors.cream,
@@ -62,6 +67,7 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
     chipTheme: 'light',
     dotInactive: 'rgba(31, 28, 25, 0.2)',
     showSunIcon: true,
+    fadeColor: ['rgba(247, 242, 234, 0)', 'rgba(247, 242, 234, 1)'],
   },
 };
 
@@ -190,75 +196,93 @@ export function CookModeView({
       </View>
 
       {/* ── Content ──────────────────────────────────────────────────── */}
-      <View style={styles.content}>
-        {/* Step number */}
-        <Text role="cookModeStepNumber" color={tc.stepNumberColor} align="right">
-          {String(stepIndex + 1).padStart(2, '0')}
-        </Text>
+      {/* ScrollView lets long step text scroll without overlapping the nav
+          bar. contentContainerStyle adds bottom padding so the last line
+          can clear the fade gradient when fully scrolled. */}
+      <View style={styles.contentWrap}>
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.contentScrollInner}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Step number */}
+          <Text role="cookModeStepNumber" color={tc.stepNumberColor} align="right">
+            {String(stepIndex + 1).padStart(2, '0')}
+          </Text>
 
-        <View style={{ height: spacing.lg }} />
+          <View style={{ height: spacing.lg }} />
 
-        {/* Step body with inline chips and timers */}
-        <Text role="cookModeBody" color={tc.bodyTextColor}>
-          {currentStep.segments.map((seg, i) => {
-            if (seg.type === 'text') return seg.content;
-            if (seg.type === 'ingredient') {
-              const ing = currentStep.ingredients.find((x) => x.id === seg.ingredientId);
+          {/* Step body with inline chips and timers */}
+          <Text role="cookModeBody" color={tc.bodyTextColor}>
+            {currentStep.segments.map((seg, i) => {
+              if (seg.type === 'text') return seg.content;
+              if (seg.type === 'ingredient') {
+                const ing = currentStep.ingredients.find((x) => x.id === seg.ingredientId);
+                return (
+                  <IngredientChip key={`ing-${i}`} label={ing?.display ?? ''} theme={tc.chipTheme} />
+                );
+              }
+              const timer = currentStep.timers.find((x) => x.id === seg.timerId);
+              if (!timer) return null;
+              const state = timers[timer.id];
+              const status = state?.status ?? 'idle';
+              const remaining = state?.remainingSeconds ?? 0;
               return (
-                <IngredientChip key={`ing-${i}`} label={ing?.display ?? ''} theme={tc.chipTheme} />
+                <TimerToken
+                  key={`timer-${i}`}
+                  label={timer.label}
+                  status={status}
+                  remainingSeconds={remaining}
+                  theme={tc.chipTheme}
+                  onPress={() => {
+                    if (status === 'idle') {
+                      startTimer(timer.id, timer.label, timer.durationSeconds);
+                    } else if (status === 'running') {
+                      cancelTimer(timer.id);
+                    } else {
+                      dismissCompletedTimer(timer.id);
+                    }
+                  }}
+                />
               );
-            }
-            const timer = currentStep.timers.find((x) => x.id === seg.timerId);
-            if (!timer) return null;
-            const state = timers[timer.id];
-            const status = state?.status ?? 'idle';
-            const remaining = state?.remainingSeconds ?? 0;
-            return (
-              <TimerToken
-                key={`timer-${i}`}
-                label={timer.label}
-                status={status}
-                remainingSeconds={remaining}
-                theme={tc.chipTheme}
-                onPress={() => {
-                  if (status === 'idle') {
-                    startTimer(timer.id, timer.label, timer.durationSeconds);
-                  } else if (status === 'running') {
-                    cancelTimer(timer.id);
-                  } else {
-                    dismissCompletedTimer(timer.id);
-                  }
-                }}
-              />
-            );
-          })}
-        </Text>
+            })}
+          </Text>
 
-        <View style={{ height: spacing.xl }} />
+          <View style={{ height: spacing.xl }} />
 
-        {/* Divider */}
-        <View style={[styles.divider, { backgroundColor: tc.divider }]} />
+          {/* Divider */}
+          <View style={[styles.divider, { backgroundColor: tc.divider }]} />
 
-        <View style={{ height: spacing.lg }} />
+          <View style={{ height: spacing.lg }} />
 
-        {/* NEXT preview */}
-        {nextStep ? (
-          <>
-            <SectionLabel color="clay">NEXT</SectionLabel>
-            <View style={{ height: spacing.sm }} />
-            <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
-              {stepToPlainText(nextStep)}
-            </Text>
-          </>
-        ) : (
-          <>
-            <SectionLabel color="clay">ALMOST THERE</SectionLabel>
-            <View style={{ height: spacing.sm }} />
-            <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
-              Last step — you're almost done.
-            </Text>
-          </>
-        )}
+          {/* NEXT preview */}
+          {nextStep ? (
+            <>
+              <SectionLabel color="clay">NEXT</SectionLabel>
+              <View style={{ height: spacing.sm }} />
+              <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
+                {stepToPlainText(nextStep)}
+              </Text>
+            </>
+          ) : (
+            <>
+              <SectionLabel color="clay">ALMOST THERE</SectionLabel>
+              <View style={{ height: spacing.sm }} />
+              <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
+                Last step — you're almost done.
+              </Text>
+            </>
+          )}
+        </ScrollView>
+
+        {/* Bottom fade — hints at scroll overflow. transparent -> background
+            so it visually dissolves the last line into the nav bar without a
+            hard edge. pointerEvents none keeps scroll + button taps live. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={tc.fadeColor}
+          style={styles.fade}
+        />
       </View>
 
       {/* ── Bottom bar ───────────────────────────────────────────────── */}
@@ -322,9 +346,25 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   // ── Content ─────────────────────────────────────────────────────────
-  content: {
+  contentWrap: {
     flex: 1,
+    position: 'relative',
+  },
+  contentScroll: {
+    flex: 1,
+  },
+  contentScrollInner: {
     paddingHorizontal: spacing.lg,
+    // Bottom padding so the last line scrolls past the fade gradient
+    // (FADE_HEIGHT) before hitting the nav bar.
+    paddingBottom: 32,
+  },
+  fade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 24,
   },
   divider: {
     height: 1,
