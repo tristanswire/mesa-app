@@ -16,11 +16,14 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tristanswire.mesa",
+      "buildNumber": "4",
       "infoPlist": {
-        "AppGroup": "group.com.tristanswire.mesa.shared"
+        "AppGroup": "group.com.tristanswire.mesa.shared",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "com.apple.security.application-groups": [
+          "group.com.tristanswire.mesa.shared",
           "group.com.tristanswire.mesa.shared"
         ]
       }
@@ -45,10 +48,37 @@
         "expo-share-extension",
         {
           "activationRules": [
-            { "type": "url", "max": 1 }
+            {
+              "type": "url",
+              "max": 1
+            }
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "MesaShareExtension",
+                  "bundleIdentifier": "com.tristanswire.mesa.ShareExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.tristanswire.mesa.shared"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "f4689da4-9787-4e0f-ad3b-ea4b1652ff0c"
+      },
+      "appleApplicationGroup": "group.com.tristanswire.mesa.shared"
+    },
+    "owner": "tristanswire"
   }
 }
