@@ -23,7 +23,6 @@
       },
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.tristanswire.mesa.shared",
           "group.com.tristanswire.mesa.shared"
         ]
       }
