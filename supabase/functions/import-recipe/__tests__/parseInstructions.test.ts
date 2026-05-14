@@ -31,6 +31,22 @@ Deno.test('hbh: single HowToStep with numbered list splits into 4 steps', async 
   assertEquals(steps[3].text.startsWith('Serve'), true);
 });
 
+// Second HBH sample — captured from a different recipe to guard against
+// regressions if HBH's whitespace/punctuation varies between posts.
+Deno.test('hbh2: blueberry cobbler splits into > 1 step (5 expected)', async () => {
+  const fx = await loadFixture('hbh2');
+  const steps = parseInstructions(fx.recipeInstructions);
+
+  // Core acceptance: the WPRM single-HowToStep must NOT collapse.
+  assertEquals(steps.length > 1, true);
+  assertEquals(steps.length, fx.expectedSteps);
+  assertEquals(steps[0].text.startsWith('Preheat'), true);
+  assertEquals(steps[4].text.startsWith('Bake'), true);
+  for (const s of steps) {
+    assertEquals(/^\d+\.\s/.test(s.text), false);
+  }
+});
+
 // --- Regression guards: well-formed HowToStep[] ----------------------------
 
 Deno.test('poy: well-formed HowToStep[] preserves 3 steps', async () => {

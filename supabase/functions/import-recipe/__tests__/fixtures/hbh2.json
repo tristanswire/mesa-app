@@ -1,0 +1,13 @@
+{
+  "source": "https://www.halfbakedharvest.com/blueberry-vanilla-bean-cobbler/",
+  "expectedSteps": 5,
+  "note": "Second HBH sample (captured 2026-05-13). Different recipe than hbh.json; same single-HowToStep WPRM shape with embedded numbered list — multiple tight '.N.' transitions (no space between sentence end and next number) and one loose 'combine. 4.' transition. Guards against regressions if HBH ever varies their punctuation.",
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "text": "1. Preheat the oven to 375°F. Add 4 tablespoons butter to a 9×13-inch baking dish or a 10-inch skillet. Place it in the oven and let the butter melt, about 10 minutes.2. In a bowl, stir together 1 cup plus 2 tablespoons flour, the baking powder, and salt. Add 6 tablespoons grated butter and, using your hands, mix it into the flour until it resembles small blueberries. Add the buttermilk and 3/4 cup brown sugar, mixing until just combined.3. Remove the hot dish from the oven. Add the blueberries/berries, 1/4 cup brown sugar, jam, vanilla bean paste, and 2 tablespoons flour. Toss to combine. 4. Spoon the batter over the berries (don’t worry about covering everything evenly). Sprinkle the top with granulated sugar.5. Bake for 45–55 minutes, until the center is just set and the edges are golden brown.",
+      "name": "1. Preheat the oven to 375°F. Add 4 tablespoons butter to a 9×13-inch baking dish or a 10-inch skillet. Place it in the oven and let the butter melt, about 10 minutes.2. In a bowl, stir together 1 cup plus 2 tablespoons flour, the baking powder, and salt. Add 6 tablespoons grated butter and, using your hands, mix it into the flour until it resembles small blueberries. Add the buttermilk and 3/4 cup brown sugar, mixing until just combined.3. Remove the hot dish from the oven. Add the blueberries/berries, 1/4 cup brown sugar, jam, vanilla bean paste, and 2 tablespoons flour. Toss to combine. 4. Spoon the batter over the berries (don’t worry about covering everything evenly). Sprinkle the top with granulated sugar.5. Bake for 45–55 minutes, until the center is just set and the edges are golden brown.",
+      "url": "https://www.halfbakedharvest.com/blueberry-vanilla-bean-cobbler/#wprm-recipe-194953-step-0-0"
+    }
+  ]
+}
