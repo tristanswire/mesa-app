@@ -16,6 +16,7 @@
     },
     "production": {
       "distribution": "store",
+      "autoIncrement": "buildNumber",
       "ios": {
         "simulator": false
       }
