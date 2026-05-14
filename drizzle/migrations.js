@@ -7,6 +7,7 @@ import m0002 from './0002_marvelous_jack_power.sql';
 import m0003 from './0003_fast_ultron.sql';
 import m0004 from './0004_clean_king_cobra.sql';
 import m0005 from './0005_small_makkari.sql';
+import m0006 from './0006_careless_warpath.sql';
 
   export default {
     journal,
@@ -16,7 +17,8 @@ m0001,
 m0002,
 m0003,
 m0004,
-m0005
+m0005,
+m0006
     }
   }
   

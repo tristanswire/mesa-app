@@ -15,6 +15,9 @@ export interface RecipeCardProps {
   title: string;
   duration: string;
   tag?: string;
+  // User-assigned meal category. When present it replaces `tag` in the meta
+  // row — categories are intentional, tags are heuristic.
+  category?: string;
   imageSource?: ImageSourcePropType;
   imageUrl?: string | null;
   tintKey?: 'terracotta' | 'olive';
@@ -28,6 +31,7 @@ export function RecipeCard({
   title,
   duration,
   tag,
+  category,
   imageSource,
   imageUrl,
   tintKey,
@@ -38,12 +42,13 @@ export function RecipeCard({
 }: RecipeCardProps) {
   const isHero = variant === 'hero';
   const resolvedImageSource = imageSource ?? (imageUrl ? { uri: imageUrl } : undefined);
+  const badge = category ?? tag;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${duration}${tag ? `, ${tag}` : ''}`}
+      accessibilityLabel={`${title}, ${duration}${badge ? `, ${badge}` : ''}`}
       style={({ pressed }) => [
         styles.card,
         isHero ? styles.heroCard : styles.gridCard,
@@ -85,10 +90,10 @@ export function RecipeCard({
 
         <View style={styles.metaRow}>
           <Text role="caption">{duration}</Text>
-          {tag && (
+          {badge && (
             <>
               <Text role="caption" color="oliveDark"> · </Text>
-              <Text role="caption">{tag}</Text>
+              <Text role="caption">{badge}</Text>
             </>
           )}
         </View>

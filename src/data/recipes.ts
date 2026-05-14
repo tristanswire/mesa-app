@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { recipes } from '../db/schema';
 import {
@@ -11,11 +11,44 @@ import {
 } from '../db/typeguards';
 import { getCurrentUserId } from './user';
 
+// User-assignable meal category. Stored as plain text in SQLite (no enum), with
+// validation enforced on writes via the RECIPE_CATEGORIES set below. Nullable
+// — a recipe with no category set just doesn't appear when filtering by one.
+export type RecipeCategory =
+  | 'breakfast'
+  | 'lunch'
+  | 'dinner'
+  | 'dessert'
+  | 'snack'
+  | 'drink'
+  | 'side'
+  | 'appetizer'
+  | 'other';
+
+export const RECIPE_CATEGORIES: readonly RecipeCategory[] = [
+  'breakfast', 'lunch', 'dinner', 'dessert', 'snack', 'drink', 'side', 'appetizer', 'other',
+] as const;
+
+const RECIPE_CATEGORY_SET = new Set<string>(RECIPE_CATEGORIES);
+
+export const RECIPE_CATEGORY_LABELS: Record<RecipeCategory, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  dessert: 'Dessert',
+  snack: 'Snack',
+  drink: 'Drink',
+  side: 'Side',
+  appetizer: 'Appetizer',
+  other: 'Other',
+};
+
 export type RecipeListItem = {
   id: string;
   title: string;
   duration: string;
   tag: string | null;
+  category: RecipeCategory | null;
   tintKey: string | null;
   imageUrl: string | null;
 };
@@ -26,6 +59,7 @@ export type RecipeDetail = {
   duration: string;
   servings: number;
   tag: string | null;
+  category: RecipeCategory | null;
   tintKey: 'terracotta' | 'olive' | null;
   imageUrl: string | null;
   ingredients: { id: string; amount: string; name: string; prep: string | null }[];
@@ -48,18 +82,39 @@ export type RecipeDetail = {
 
 export async function listRecipes(): Promise<RecipeListItem[]> {
   const userId = await getCurrentUserId();
-  return db
+  const rows = await db
     .select({
       id: recipes.id,
       title: recipes.title,
       duration: recipes.duration,
       tag: recipes.tag,
+      category: recipes.category,
       tintKey: recipes.tintKey,
       imageUrl: recipes.imageUrl,
     })
     .from(recipes)
     .where(eq(recipes.userId, userId))
     .orderBy(desc(recipes.updatedAt));
+
+  return rows.map((r) => ({ ...r, category: normalizeCategory(r.category) }));
+}
+
+function normalizeCategory(value: string | null): RecipeCategory | null {
+  return value && RECIPE_CATEGORY_SET.has(value) ? (value as RecipeCategory) : null;
+}
+
+export async function setRecipeCategory(
+  recipeId: string,
+  category: RecipeCategory | null,
+): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (category !== null && !RECIPE_CATEGORY_SET.has(category)) {
+    throw new Error(`[recipes] invalid category: ${category}`);
+  }
+  await db
+    .update(recipes)
+    .set({ category, updatedAt: new Date().toISOString() })
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
 }
 
 export async function getRecipe(id: string): Promise<RecipeDetail | null> {
@@ -89,6 +144,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
     duration: result.duration,
     servings: result.servings,
     tag: result.tag,
+    category: normalizeCategory(result.category),
     tintKey: result.tintKey as 'terracotta' | 'olive' | null,
     imageUrl: result.imageUrl,
     ingredients: result.ingredients.map((ing) => ({

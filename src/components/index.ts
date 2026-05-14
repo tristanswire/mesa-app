@@ -60,3 +60,6 @@ export type { SkeletonProps } from './Skeleton';
 
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
+
+export { CategoryPickerSheet } from './CategoryPickerSheet';
+export type { CategoryPickerSheetProps } from './CategoryPickerSheet';

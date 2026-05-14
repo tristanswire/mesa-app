@@ -14,22 +14,27 @@ import { RecipeCard } from '../../components/RecipeCard';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useRecipesList } from '../../data/hooks';
-import type { RecipeListItem } from '../../data/recipes';
+import {
+  RECIPE_CATEGORIES,
+  RECIPE_CATEGORY_LABELS,
+  type RecipeCategory,
+  type RecipeListItem,
+} from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-const FILTERS = [
-  'All',
-  'Weeknight',
-  'Quick',
-  'Vegetarian',
-  'Dessert',
-  'Side',
-  'Breakfast',
-  'Slow-cooker',
-];
+// Filter pills: "All" + the 9 user-assignable categories. Tag-based filtering
+// (Weeknight, Quick, etc.) was wired but never applied before Phase 3.22 — now
+// replaced by category, the user-controlled dimension. `recipe.tag` remains on
+// the schema but is no longer exposed as a filter.
+type FilterValue = 'All' | RecipeCategory;
+const FILTERS: FilterValue[] = ['All', ...RECIPE_CATEGORIES];
+
+function filterLabel(value: FilterValue): string {
+  return value === 'All' ? 'All' : RECIPE_CATEGORY_LABELS[value];
+}
 
 function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
   return value === 'terracotta' || value === 'olive' ? value : undefined;
@@ -38,8 +43,8 @@ function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
 type HeaderProps = {
   searchQuery: string;
   onSearchChange: (text: string) => void;
-  activeFilter: string;
-  onFilterPress: (filter: string) => void;
+  activeFilter: FilterValue;
+  onFilterPress: (filter: FilterValue) => void;
 };
 
 function ScreenHeader({
@@ -70,7 +75,7 @@ function ScreenHeader({
         {FILTERS.map((filter) => (
           <Pill
             key={filter}
-            label={filter}
+            label={filterLabel(filter)}
             active={activeFilter === filter}
             onPress={() => onFilterPress(filter)}
           />
@@ -104,18 +109,30 @@ function GridSkeleton() {
 export function RecipesScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState<FilterValue>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: recipes, ready } = useRecipesList();
 
-  const handleFilterPress = async (filter: string) => {
+  const handleFilterPress = async (filter: FilterValue) => {
     await Haptics.selectionAsync();
     setActiveFilter(filter);
   };
 
+  // Filter pipeline: category pill (skipped when 'All'), then case-insensitive
+  // title substring match. Search-by-ingredient is intentionally deferred —
+  // would require joining the ingredients table in useRecipesList, and title
+  // match covers the common case.
+  const filteredRecipes = recipes.filter((r) => {
+    if (activeFilter !== 'All' && r.category !== activeFilter) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (q && !r.title.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
   const showSkeleton = !ready;
   const showEmptyState = ready && recipes.length === 0;
+  const showNoMatches = ready && recipes.length > 0 && filteredRecipes.length === 0;
 
   const renderItem = ({ item }: { item: RecipeListItem }) => (
     <View style={styles.cardItem}>
@@ -124,6 +141,7 @@ export function RecipesScreen() {
         title={item.title}
         duration={item.duration}
         tag={item.tag ?? undefined}
+        category={item.category ? RECIPE_CATEGORY_LABELS[item.category] : undefined}
         tintKey={asTintKey(item.tintKey)}
         imageUrl={item.imageUrl}
         onPress={() =>
@@ -179,7 +197,7 @@ export function RecipesScreen() {
           </View>
         ) : (
           <FlatList
-            data={recipes}
+            data={filteredRecipes}
             numColumns={2}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
@@ -191,8 +209,17 @@ export function RecipesScreen() {
                 onFilterPress={handleFilterPress}
               />
             }
+            ListEmptyComponent={
+              showNoMatches ? (
+                <View style={styles.noMatchesBlock}>
+                  <Text role="body" color="oliveDark" align="center">
+                    No recipes match this filter.
+                  </Text>
+                </View>
+              ) : null
+            }
             renderItem={renderItem}
-            columnWrapperStyle={styles.columnWrapper}
+            columnWrapperStyle={filteredRecipes.length > 0 ? styles.columnWrapper : undefined}
             contentContainerStyle={[
               styles.listContent,
               { paddingTop: insets.top + spacing.lg },
@@ -238,6 +265,10 @@ const styles = StyleSheet.create({
   cardItem: {
     flex: 1,
     marginBottom: spacing.md,
+  },
+  noMatchesBlock: {
+    paddingVertical: spacing.xxl,
+    alignItems: 'center',
   },
   skeletonGrid: {
     flexDirection: 'row',

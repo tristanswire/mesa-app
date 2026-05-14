@@ -12,12 +12,18 @@ import { RecipeImagePlaceholder } from '../../components/RecipeImagePlaceholder'
 import { SectionLabel } from '../../components/SectionLabel';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
+import { CategoryPickerSheet } from '../../components/CategoryPickerSheet';
 import { useRecipeDetail } from '../../data/hooks';
 import {
   getUserPreferences,
   setMeasurementSystem,
   type MeasurementSystem,
 } from '../../data/preferences';
+import {
+  RECIPE_CATEGORY_LABELS,
+  setRecipeCategory,
+  type RecipeCategory,
+} from '../../data/recipes';
 import { convertAmount } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
@@ -33,6 +39,23 @@ export function RecipeDetailScreen() {
 
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
   const [system, setSystem] = useState<MeasurementSystem>('imperial');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Mirrors the persisted recipe.category so the row updates instantly on save
+  // without round-tripping through useRecipeDetail's one-shot fetch.
+  const [category, setCategory] = useState<RecipeCategory | null>(null);
+
+  useEffect(() => {
+    if (recipe) setCategory(recipe.category);
+  }, [recipe?.id, recipe?.category]);
+
+  const handleCategoryChange = (next: RecipeCategory | null) => {
+    if (!recipe) return;
+    if (next === category) return;
+    setCategory(next);
+    setRecipeCategory(recipe.id, next).catch((e) =>
+      console.error('[recipeDetail] failed to persist category', e),
+    );
+  };
 
   // Load the persisted measurement preference once; default ('imperial') is
   // already the initial state so first render before this completes is fine.
@@ -161,6 +184,23 @@ export function RecipeDetailScreen() {
           <Text role="caption" color="oliveDark">
             {recipe.duration} · {recipe.servings} servings{recipe.tag ? ` · ${recipe.tag}` : ''}
           </Text>
+          <View style={{ height: spacing.sm }} />
+          <Pressable
+            onPress={() => setPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              category
+                ? `Category: ${RECIPE_CATEGORY_LABELS[category]}, tap to change`
+                : 'Add category'
+            }
+            style={({ pressed }) => [styles.categoryRow, pressed && { opacity: 0.6 }]}
+            hitSlop={4}
+          >
+            <Text role="caption" color={category ? 'terracotta' : 'inkMuted'}>
+              {category ? RECIPE_CATEGORY_LABELS[category] : 'Add category'}
+            </Text>
+            <Text role="caption" color={category ? 'terracotta' : 'inkMuted'}>›</Text>
+          </Pressable>
         </View>
 
         {/* ── Primary CTAs ───────────────────────────────────────────── */}
@@ -284,6 +324,13 @@ export function RecipeDetailScreen() {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      <CategoryPickerSheet
+        visible={pickerOpen}
+        value={category}
+        onSelect={handleCategoryChange}
+        onClose={() => setPickerOpen(false)}
+      />
     </>
   );
 }
@@ -327,6 +374,12 @@ const styles = StyleSheet.create({
   },
   ctaItem: {
     flex: 1,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
   },
   ingredientsSection: {
     paddingTop: spacing.xl,

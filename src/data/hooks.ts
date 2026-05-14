@@ -27,6 +27,7 @@ export function useRecipesList() {
       title: recipes.title,
       duration: recipes.duration,
       tag: recipes.tag,
+      category: recipes.category,
       tintKey: recipes.tintKey,
       imageUrl: recipes.imageUrl,
     })

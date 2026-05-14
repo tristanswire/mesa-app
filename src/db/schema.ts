@@ -18,6 +18,9 @@ export const recipes = sqliteTable('recipes', {
   duration: text('duration').notNull(),
   servings: integer('servings').notNull().default(4),
   tag: text('tag'),
+  // User-assigned meal category. Nullable; values validated in app, not DB.
+  // See RecipeCategory in data/recipes.ts for the allowed set.
+  category: text('category'),
   tintKey: text('tint_key'),
   sourceUrl: text('source_url'),
   imageUrl: text('image_url'),

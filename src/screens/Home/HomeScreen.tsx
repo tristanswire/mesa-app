@@ -12,7 +12,7 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useHomeData } from '../../data/hooks';
-import type { RecipeListItem } from '../../data/recipes';
+import { RECIPE_CATEGORY_LABELS, type RecipeListItem } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -115,6 +115,7 @@ export function HomeScreen() {
         title={item.title}
         duration={item.duration}
         tag={item.tag ?? undefined}
+        category={item.category ? RECIPE_CATEGORY_LABELS[item.category] : undefined}
         tintKey={asTintKey(item.tintKey)}
         imageUrl={item.imageUrl}
         onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
@@ -148,6 +149,7 @@ export function HomeScreen() {
                 title={lastCooked.title}
                 duration={lastCooked.duration}
                 tag={lastCooked.tag ?? undefined}
+                category={lastCooked.category ? RECIPE_CATEGORY_LABELS[lastCooked.category] : undefined}
                 tintKey={asTintKey(lastCooked.tintKey)}
                 imageUrl={lastCooked.imageUrl}
                 ctaLabel="Cook Again →"
