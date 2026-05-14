@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { User } from 'lucide-react-native';
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
@@ -16,6 +16,7 @@ import {
   type CookingFrequency,
   type SkillLevel,
 } from '../../data/preferences';
+import { SUPPORT_EMAIL } from '../../lib/constants';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -199,6 +200,15 @@ export function ProfileScreen() {
           <SettingRow
             label="Manage subscription"
             onPress={() => { /* TODO Phase 3: subscription decision */ }}
+          />
+          <SettingRow
+            label="Contact support"
+            onPress={() => {
+              const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Mesa support')}`;
+              Linking.openURL(url).catch((e) =>
+                console.error('[profile] failed to open mail composer', e),
+              );
+            }}
             isLast
           />
         </View>

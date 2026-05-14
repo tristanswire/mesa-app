@@ -98,7 +98,7 @@ serve(async (req) => {
 
     const pageResponse = await fetch(normalizedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MesaBot/1.0; +https://mesa.app/bot)',
+        'User-Agent': 'Mozilla/5.0 (compatible; MesaBot/1.0; +https://cookwithmesa.com/bot)',
       },
     });
 
