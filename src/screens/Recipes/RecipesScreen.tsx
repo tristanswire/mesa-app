@@ -61,7 +61,7 @@ function ScreenHeader({
         icon={Search}
         value={searchQuery}
         onChangeText={onSearchChange}
-        placeholder="Search recipes, ingredients…"
+        placeholder="Search recipes…"
         accessibilityLabel="Search recipes"
       />
       <View style={{ height: spacing.base }} />

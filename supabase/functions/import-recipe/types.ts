@@ -4,6 +4,9 @@ export type ParsedRecipe = {
   duration: string;
   servings: number;
   tag: string | null;
+  // AI-suggested meal category. Untrusted — caller validates against the
+  // allowed set before persisting (see normalizeCategory in src/data/recipes.ts).
+  category?: string | null;
   imageUrl: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];

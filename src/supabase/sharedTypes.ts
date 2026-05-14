@@ -6,6 +6,9 @@ export type ParsedRecipe = {
   duration: string;
   servings: number;
   tag: string | null;
+  // AI-suggested meal category. Untrusted — caller must run through
+  // normalizeCategory() before persisting. May be null/undefined/garbage.
+  category?: string | null;
   imageUrl: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];

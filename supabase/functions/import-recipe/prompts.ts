@@ -8,6 +8,7 @@ JSON shape:
   "duration": "30 min" or "1 hr 20 min",
   "servings": number,
   "tag": "Weeknight" | "Quick" | "Dessert" | "Side" | "Breakfast" | "Slow-cooker" | "Vegetarian" | null,
+  "category": "breakfast" | "lunch" | "dinner" | "dessert" | "snack" | "drink" | "side" | "appetizer" | "other",
   "imageUrl": "https://..." or null,
   "ingredients": [{ "amount": "2 tbsp", "name": "olive oil", "prep": "minced" or null }],
   "steps": [{ "segments": [...], "ingredients": [...], "timers": [...] }],
@@ -41,6 +42,7 @@ CONSTRAINTS:
 - Maximum 8 prep items
 - Maximum 3 tools
 - Tag must be from the enum above; null if no clean fit
+- Category must be exactly one of the lowercase values listed; default to "other" if genuinely ambiguous, never null, never invented
 - Each step's text segments should be concise — extract the action, omit narrative
 
 PREP ITEM EXTRACTION:
@@ -66,16 +68,18 @@ Output ONLY the JSON object. The first character must be {.`;
 
 export const ANNOTATE_PROMPT = `RESPONSE FORMAT: Output ONLY a single JSON object. No prose, no fences, no explanation. Start with { and end with }.
 
-You are given a recipe with structured ingredients and plain-text steps. Your job is to rewrite the steps with inline ingredient and timer annotations, preserving the original instruction text exactly. The output is structurally similar to the input, but each step's text becomes a sequence of segments where ingredient mentions and time-bound actions are wrapped as taggable inline elements.
+You are given a recipe with a title, structured ingredients, and plain-text steps. Your job is to (a) rewrite the steps with inline ingredient and timer annotations preserving the original instruction text exactly, and (b) classify the recipe into a meal category.
 
 INPUT shape:
 {
+  "title": "Garlic Butter Roasted Chicken",
   "ingredients": [{"id": "ing-1", "amount": "2 tbsp", "name": "olive oil", "prep": null}],
   "steps": [{"text": "Heat 2 tbsp olive oil over medium and bake for 18 minutes until fragrant."}]
 }
 
 OUTPUT shape:
 {
+  "category": "dinner",
   "steps": [
     {
       "segments": [
@@ -91,7 +95,14 @@ OUTPUT shape:
   ]
 }
 
-RULES:
+CATEGORY SELECTION:
+- Pick exactly one value from this list (lowercase, exact spelling):
+  "breakfast" | "lunch" | "dinner" | "dessert" | "snack" | "drink" | "side" | "appetizer" | "other"
+- Base the choice on the title and ingredients, with meal-type keywords in the recipe taking priority.
+- Choose "other" only when genuinely ambiguous (e.g. a sauce, a marinade, a generic dough).
+- Never invent a value outside the list; never output null. If unsure, output "other".
+
+ANNOTATION RULES:
 1. Concatenating all "text" segments + the spelled-out form of each chip MUST exactly reconstruct the original step text (allowing minor whitespace cleanup).
 2. When a step text mentions an ingredient (by name, with or without exact amount match), wrap the ingredient mention as an {type:"ingredient"} segment. Use the matching ingredient's id from the input. The chip "display" should be a short canonical form: amount + simple name, max 25 chars (e.g., "2 tbsp olive oil"). NOT the full original ingredient description.
 3. When a step text contains a time-bound action (bake, simmer, marinate, rest, chill, broil, sauté for X, etc.), wrap the action+duration as an {type:"timer"} segment. The timer "label" reads naturally inside the sentence ("bake 18 min", "simmer 30 min"), max 20 chars. Convert to durationSeconds.

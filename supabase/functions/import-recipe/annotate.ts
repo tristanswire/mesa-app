@@ -5,6 +5,7 @@ import { ANNOTATE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
 
 type AnnotateResponse = {
+  category?: string | null;
   steps: ParsedStep[];
 };
 
@@ -13,6 +14,7 @@ export async function annotateRecipe(
   anthropic: Anthropic,
 ): Promise<ParsedRecipe> {
   const annotationInput = {
+    title: partial.title,
     ingredients: partial.ingredients.map((ing) => ({
       id: ing.id,
       amount: ing.amount,
@@ -79,6 +81,9 @@ export async function annotateRecipe(
     duration: partial.duration,
     servings: partial.servings,
     tag: partial.tag,
+    // Untrusted: model may return a value outside the allowed list, or omit
+    // the field. Client validates via normalizeCategory before persisting.
+    category: typeof parsed.category === 'string' ? parsed.category : null,
     imageUrl: partial.imageUrl,
     ingredients: cleanIngredients,
     steps: parsed.steps,
@@ -95,6 +100,7 @@ function buildFallbackRecipe(partial: PartialRecipe): ParsedRecipe {
     duration: partial.duration,
     servings: partial.servings,
     tag: partial.tag,
+    category: null,
     imageUrl: partial.imageUrl,
     ingredients: cleanIngredients,
     steps: partial.plainSteps.map((s) => ({

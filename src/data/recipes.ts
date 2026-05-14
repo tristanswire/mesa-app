@@ -99,8 +99,14 @@ export async function listRecipes(): Promise<RecipeListItem[]> {
   return rows.map((r) => ({ ...r, category: normalizeCategory(r.category) }));
 }
 
-function normalizeCategory(value: string | null): RecipeCategory | null {
-  return value && RECIPE_CATEGORY_SET.has(value) ? (value as RecipeCategory) : null;
+// Coerce any string into a valid RecipeCategory or null. Use this on every
+// untrusted input (LLM responses, legacy DB rows, deeplinks) before persisting
+// so a bad value can't reach the schema. Lowercased so "Breakfast" / "BREAKFAST"
+// from a noisy AI response both resolve.
+export function normalizeCategory(value: string | null | undefined): RecipeCategory | null {
+  if (!value) return null;
+  const lower = value.toLowerCase();
+  return RECIPE_CATEGORY_SET.has(lower) ? (lower as RecipeCategory) : null;
 }
 
 export async function setRecipeCategory(

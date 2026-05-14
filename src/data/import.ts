@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { ingredients, prepItems, recipes, steps, tools } from '../db/schema';
 import { supabase } from '../supabase/client';
 import type { ImportResponse, ParsedRecipe } from '../supabase/sharedTypes';
+import { normalizeCategory } from './recipes';
 import { getCurrentUserId } from './user';
 
 export type ImportResult =
@@ -44,6 +45,8 @@ async function saveRecipeToLocalDB(parsed: ParsedRecipe, sourceUrl: string): Pro
     duration: parsed.duration,
     servings: parsed.servings,
     tag: parsed.tag,
+    // AI-suggested but untrusted — normalize coerces unknown values to null.
+    category: normalizeCategory(parsed.category),
     tintKey,
     sourceUrl,
     imageUrl: parsed.imageUrl,
