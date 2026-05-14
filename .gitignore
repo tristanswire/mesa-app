@@ -46,3 +46,6 @@ yarn-error.*
 /ios
 /android
 *.swp
+
+# Deno lockfile — regenerated from scripts; not source
+deno.lock
