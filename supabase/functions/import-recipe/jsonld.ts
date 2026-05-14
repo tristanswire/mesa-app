@@ -89,7 +89,7 @@ function normalizeRecipe(node: any): PartialRecipe | null {
     imageUrl,
     ingredients,
     plainSteps,
-    prepItems: derivePrepItems(plainSteps),
+    prepItems: derivePrepItems(plainSteps, ingredients),
     tools: parseTools(node.tool),
   };
 }
@@ -297,23 +297,131 @@ function splitStringInstructions(text: string): { text: string }[] {
   return sentences.map((s) => ({ text: s }));
 }
 
-function derivePrepItems(steps: { text: string }[]): ParsedPrepItem[] {
-  const items: ParsedPrepItem[] = [];
+// Past-tense knife verbs as written in ingredient.prep ("garlic, minced")
+// mapped to the imperative form used for prep-task labels ("Mince garlic").
+// Order matters when verbs share a prefix — match longest first by sorting
+// keys descending by length at the use site, not here.
+const KNIFE_VERB_PAST: Record<string, string> = {
+  diced: 'Dice', minced: 'Mince', chopped: 'Chop', sliced: 'Slice',
+  halved: 'Halve', quartered: 'Quarter', crushed: 'Crush', smashed: 'Smash',
+  grated: 'Grate', shredded: 'Shred', zested: 'Zest', peeled: 'Peel',
+  trimmed: 'Trim', cored: 'Core', seeded: 'Seed', deveined: 'Devein',
+  butterflied: 'Butterfly', pounded: 'Pound', scored: 'Score', cubed: 'Cube',
+  // "cut" is its own past participle ("cut into wedges").
+  cut: 'Cut',
+};
+const KNIFE_VERBS_PAST_KEYS = Object.keys(KNIFE_VERB_PAST).sort((a, b) => b.length - a.length);
 
-  for (let i = 0; i < Math.min(2, steps.length); i++) {
-    const text = steps[i].text;
-    const preheatMatch = text.match(/preheat (?:the )?oven to (\d+°?\s*[FC]?)/i);
-    if (preheatMatch) {
-      items.push({
-        label: `Preheat oven to ${preheatMatch[1]}`,
-        duration: '20 min',
-        defaultChecked: false,
-      });
-      break;
+// Imperative form for step-text scanning. "cut" is its own imperative.
+const KNIFE_VERBS_IMPER = [
+  'dice', 'chop', 'mince', 'slice', 'cut', 'halve', 'quarter', 'crush',
+  'smash', 'grate', 'shred', 'zest', 'peel', 'trim', 'core', 'seed',
+  'devein', 'butterfly', 'pound', 'score', 'cube',
+];
+
+const MODIFIER_PREFIX = /^(finely|coarsely|roughly|thinly|thickly|freshly|lightly)\s+/;
+
+// Prep-only knife-work scan: any verb that operates on raw ingredients before
+// heat is applied. Strategy is rule-based and conservative — favor false
+// negatives over false positives so the surfaced prep list stays trustworthy.
+// Three signal sources, in order of confidence:
+//   1) Preheat instructions (regex; oven/grill/broiler)
+//   2) ingredient.prep field ("garlic, minced") — already structured
+//   3) Step-text verb scan, restricted to sentence-initial imperatives so
+//      mid-cook actions ("add chopped parsley") don't fire
+function derivePrepItems(
+  steps: { text: string }[],
+  ingredients: ParsedIngredient[],
+): ParsedPrepItem[] {
+  const items: ParsedPrepItem[] = [];
+  const seen = new Set<string>();
+
+  const add = (label: string, duration: string | null = null) => {
+    const key = label.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    items.push({ label, duration, defaultChecked: false });
+  };
+
+  // 1) Preheat (oven, grill, broiler) — any step, not just first 2
+  for (const step of steps) {
+    const m = step.text.match(/preheat (?:the |your )?(oven|grill|broiler) to (\d+°?\s*[FC]?)/i);
+    if (m) {
+      const device = m[1].toLowerCase();
+      const temp = m[2].trim();
+      add(`Preheat ${device} to ${temp}`, '15 min');
     }
   }
 
-  return items.slice(0, 4);
+  // 2) ingredient.prep → knife task. "1/4 cup butter, room temperature" gives
+  // a temperature-prep task instead of a knife task.
+  for (const ing of ingredients) {
+    const task = ingredientPrepToTask(ing.name, ing.prep);
+    if (task) add(task);
+  }
+
+  // 3) Step-text scan for room temp / soften / knife work in sentence-initial
+  // position. Limited to the first 3 steps where pre-cook prep typically sits.
+  for (let i = 0; i < Math.min(3, steps.length); i++) {
+    const text = steps[i].text;
+
+    // "Bring X to room temperature"
+    const rt = text.match(/\bbring (?:the )?([\w\s]{2,30}?) to room temperature/i);
+    if (rt) add(`Bring ${rt[1].trim().toLowerCase()} to room temp`);
+
+    // "Soften/Melt the butter" — strictly butter to keep noise low
+    const soft = text.match(/\b(soften|melt) (?:the )?butter\b/i);
+    if (soft) add(`${cap(soft[1])} butter`);
+
+    extractKnifeWorkFromStep(text).forEach((t) => add(t));
+  }
+
+  return items.slice(0, 8);
+}
+
+function ingredientPrepToTask(name: string, prep: string | null): string | null {
+  if (!prep) return null;
+  const p = prep.toLowerCase().trim();
+  if (!p) return null;
+
+  // Temperature prep — written as "room temperature" or "at room temperature"
+  if (/\broom\s+temperature\b/.test(p)) {
+    return `Bring ${name} to room temp`;
+  }
+
+  // Strip leading modifier ("finely chopped" → "chopped")
+  const stripped = p.replace(MODIFIER_PREFIX, '');
+
+  for (const past of KNIFE_VERBS_PAST_KEYS) {
+    if (stripped.startsWith(past)) {
+      return `${KNIFE_VERB_PAST[past]} ${name}`;
+    }
+  }
+  return null;
+}
+
+function extractKnifeWorkFromStep(text: string): string[] {
+  const out: string[] = [];
+  const verbsAlt = KNIFE_VERBS_IMPER.join('|');
+  // Match at sentence start: optional leading "Then "/"Next "/"Now ", then
+  // the verb, then an optional article/quantity, then capture the object up
+  // to a clause break or "and set aside".
+  const re = new RegExp(
+    `(?:^|[.!?]\\s+)(?:then\\s+|next\\s+|now\\s+|first\\s+)?(${verbsAlt})\\s+(?:the\\s+|a\\s+|all\\s+(?:of\\s+)?the\\s+|\\d+(?:\\s+\\w+)?\\s+|of\\s+the\\s+|some\\s+|your\\s+)?([a-zA-Z][a-zA-Z\\- ]{1,40}?)(?:\\s+and\\s+set\\s+aside|\\s+into\\s+|\\s*[,.;]|\\s+with\\s+|$)`,
+    'gi',
+  );
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const verb = m[1].toLowerCase();
+    const obj = m[2].toLowerCase().trim().replace(/\s+/g, ' ');
+    if (!obj || obj === 'them' || obj === 'it' || obj === 'up') continue;
+    out.push(`${cap(verb)} ${obj}`);
+  }
+  return out;
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 function parseTools(value: any): ParsedTool[] {

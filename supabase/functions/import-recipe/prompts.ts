@@ -38,10 +38,19 @@ TIMER LABEL RULES:
 - Format: action + duration (e.g., "bake 18 min", "simmer 30 min", "rest 10 min")
 
 CONSTRAINTS:
-- Maximum 4 prep items
+- Maximum 8 prep items
 - Maximum 3 tools
 - Tag must be from the enum above; null if no clean fit
 - Each step's text segments should be concise — extract the action, omit narrative
+
+PREP ITEM EXTRACTION:
+Prep items are anything the cook can finish BEFORE active stovetop/oven work begins. Include all that apply, deduped:
+- Knife work: dice, chop, mince, slice, cut, halve, quarter, crush, smash, grate, shred, zest, peel, trim, core, seed, devein, butterfly, pound, score, cube
+- Temperature prep: "Preheat oven/grill/broiler to <temp>", "Bring <ingredient> to room temp", "Soften butter", "Melt butter"
+- Measuring / staging: "Measure out <spices>", "Set aside <ingredient>", "Gather <items>"
+- Soaking / marinating: "Marinate <protein>", "Soak <ingredient>"
+- Pre-cook combining: "Whisk together <X>", "Stir together <X>", "Combine <X>" — ONLY when the combining happens before any heat verb in the recipe; do NOT include mid-cook stirring
+Label format: imperative verb + short object phrase ("Dice onion", "Preheat oven to 400°F"). Do not duplicate: if two ingredients share the same prep ("chopped garlic" and "chopped shallot"), emit "Chop garlic" and "Chop shallot" as separate items, not "Chop garlic and shallot".
 
 IMAGE EXTRACTION:
 - Look for the primary recipe image. Common locations:
