@@ -118,6 +118,24 @@ export function PostCookScreen() {
     setRating((prev) => (prev === value ? null : value));
   };
 
+  // Finishing the cook (save or dismiss) resets the Main stack to a single
+  // Tabs route with Home selected. Reset (not goBack) so the user can't swipe
+  // back into RecipeDetail / CookMode — the cook has ended.
+  const goHome = () => {
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'Tabs',
+          state: {
+            index: 0,
+            routes: [{ name: 'Home' }],
+          },
+        },
+      ],
+    });
+  };
+
   const handleSave = async () => {
     void Haptics.selectionAsync();
     try {
@@ -126,14 +144,12 @@ export function PostCookScreen() {
     } catch (e) {
       console.error('[postcook] save failed', e);
     }
-    navigation.goBack();
+    goHome();
   };
 
   const handleDismiss = () => {
-    // Just navigate away — completeCook fires on unmount; rating/notes are not persisted.
-    // CookMode used navigation.replace, so the stack is [Tabs, RecipeDetail, PostCook]
-    // and goBack lands on Recipe Detail — the natural post-cook destination.
-    navigation.goBack();
+    // completeCook fires on unmount; rating/notes are not persisted on dismiss.
+    goHome();
   };
 
   return (

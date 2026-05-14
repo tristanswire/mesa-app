@@ -152,7 +152,7 @@ export function CookModeView({
         console.error('[cookmode] failed to read prefs, defaulting to show prompt', e);
       }
       if (showPrompt) {
-        // replace, not push: PostCook is terminal — back from it goes to Recipe Detail,
+        // replace, not push: PostCook is terminal — finishing it resets to Home,
         // not back into Cook Mode
         navigation.replace('PostCook', { recipeId: recipe.id, cookId });
       } else {
@@ -161,7 +161,20 @@ export function CookModeView({
         } catch (e) {
           console.error('[cookmode] failed to complete cook', e);
         }
-        navigation.popToTop();
+        // Reset to Home tab so a finished cook always lands at the app's
+        // surface, regardless of which tab the user started from.
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Tabs',
+              state: {
+                index: 0,
+                routes: [{ name: 'Home' }],
+              },
+            },
+          ],
+        });
       }
     } else {
       setStepIndex((i) => i + 1);
