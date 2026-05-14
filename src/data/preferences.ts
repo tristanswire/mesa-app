@@ -5,6 +5,7 @@ import { getCurrentUserId } from './user';
 
 export type CookingFrequency = '1-2x' | '3-5x' | 'every-day';
 export type SkillLevel = 'weeknight' | 'enthusiast' | 'pro';
+export type MeasurementSystem = 'imperial' | 'metric';
 
 export type UserPreferences = {
   cookingFrequency: CookingFrequency | null;
@@ -14,6 +15,7 @@ export type UserPreferences = {
   hasCompletedOnboarding: boolean;
   timerSoundEnabled: boolean;
   showRatingPrompt: boolean;
+  measurementSystem: MeasurementSystem;
 };
 
 export type OnboardingResult = {
@@ -39,6 +41,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
       hasCompletedOnboarding: false,
       timerSoundEnabled: true,
       showRatingPrompt: true,
+      measurementSystem: 'imperial',
     };
   }
 
@@ -51,6 +54,8 @@ export async function getUserPreferences(): Promise<UserPreferences> {
     hasCompletedOnboarding: row.hasCompletedOnboarding ?? false,
     timerSoundEnabled: row.timerSoundEnabled ?? true,
     showRatingPrompt: row.showRatingPrompt ?? true,
+    measurementSystem:
+      row.measurementSystem === 'metric' ? 'metric' : 'imperial',
   };
 }
 
@@ -117,6 +122,14 @@ export async function setDefaultServingSize(value: number): Promise<void> {
   await db
     .update(userPreferences)
     .set({ defaultServingSize: value })
+    .where(eq(userPreferences.userId, userId));
+}
+
+export async function setMeasurementSystem(value: MeasurementSystem): Promise<void> {
+  const userId = await getCurrentUserId();
+  await db
+    .update(userPreferences)
+    .set({ measurementSystem: value })
     .where(eq(userPreferences.userId, userId));
 }
 

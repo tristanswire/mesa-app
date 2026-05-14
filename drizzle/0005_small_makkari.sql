@@ -1,0 +1,1 @@
+ALTER TABLE `user_preferences` ADD `measurement_system` text DEFAULT 'imperial' NOT NULL;

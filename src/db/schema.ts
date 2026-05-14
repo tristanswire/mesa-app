@@ -132,5 +132,6 @@ export const userPreferences = sqliteTable('user_preferences', {
   showRatingPrompt: integer('show_rating_prompt', { mode: 'boolean' })
     .notNull()
     .default(true),
+  measurementSystem: text('measurement_system').notNull().default('imperial'),
   syncedAt: text('synced_at'),
 });

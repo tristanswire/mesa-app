@@ -13,6 +13,12 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
 import { useRecipeDetail } from '../../data/hooks';
+import {
+  getUserPreferences,
+  setMeasurementSystem,
+  type MeasurementSystem,
+} from '../../data/preferences';
+import { convertAmount } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -26,6 +32,27 @@ export function RecipeDetailScreen() {
   const { data: recipe, loading, error } = useRecipeDetail(route.params.recipeId);
 
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
+  const [system, setSystem] = useState<MeasurementSystem>('imperial');
+
+  // Load the persisted measurement preference once; default ('imperial') is
+  // already the initial state so first render before this completes is fine.
+  useEffect(() => {
+    let cancelled = false;
+    getUserPreferences().then((prefs) => {
+      if (!cancelled) setSystem(prefs.measurementSystem);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleSystem = (next: MeasurementSystem) => {
+    if (next === system) return;
+    setSystem(next);
+    setMeasurementSystem(next).catch((e) =>
+      console.error('[recipeDetail] failed to persist measurement system', e),
+    );
+  };
 
   // Phase 3.11 will add a real error state. For now, route back if a phantom ID lands here.
   useEffect(() => {
@@ -160,14 +187,49 @@ export function RecipeDetailScreen() {
 
         {/* ── Ingredients ────────────────────────────────────────────── */}
         <View style={[styles.section, styles.ingredientsSection]}>
-          <SectionLabel>INGREDIENTS</SectionLabel>
+          <View style={styles.ingredientsHeader}>
+            <SectionLabel>INGREDIENTS</SectionLabel>
+            <View style={styles.unitToggle}>
+              <Pressable
+                onPress={() => handleToggleSystem('imperial')}
+                accessibilityRole="button"
+                accessibilityLabel="Show ingredients in US units"
+                accessibilityState={{ selected: system === 'imperial' }}
+                hitSlop={8}
+              >
+                <Text
+                  role="caption"
+                  color={system === 'imperial' ? 'terracotta' : 'inkMuted'}
+                  style={system === 'imperial' ? styles.unitActive : undefined}
+                >
+                  US
+                </Text>
+              </Pressable>
+              <Text role="caption" color="inkMuted">·</Text>
+              <Pressable
+                onPress={() => handleToggleSystem('metric')}
+                accessibilityRole="button"
+                accessibilityLabel="Show ingredients in metric units"
+                accessibilityState={{ selected: system === 'metric' }}
+                hitSlop={8}
+              >
+                <Text
+                  role="caption"
+                  color={system === 'metric' ? 'terracotta' : 'inkMuted'}
+                  style={system === 'metric' ? styles.unitActive : undefined}
+                >
+                  METRIC
+                </Text>
+              </Pressable>
+            </View>
+          </View>
           <View style={{ height: spacing.md }} />
 
           {visibleIngredients.map((ing) => (
             <View key={ing.id} style={styles.ingredientRow}>
               <Text role="caption" color="oliveDark" style={styles.bullet}>·</Text>
               <Text role="body" style={styles.ingredientText}>
-                {ing.amount} {ing.name}
+                {convertAmount(ing.amount, system)} {ing.name}
                 {ing.prep ? `, ${ing.prep}` : ''}
               </Text>
             </View>
@@ -268,6 +330,19 @@ const styles = StyleSheet.create({
   },
   ingredientsSection: {
     paddingTop: spacing.xl,
+  },
+  ingredientsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  unitActive: {
+    fontWeight: '600',
   },
   toolsSection: {
     paddingTop: spacing.xl,
