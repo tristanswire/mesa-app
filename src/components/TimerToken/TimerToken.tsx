@@ -108,10 +108,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     alignSelf: 'center',
-    // iOS centers inline Views by content height, not text optical center.
-    // With 20pt text in a 30pt line-box, the pill is ~28pt tall — a small
-    // translateY brings the pill's center to the body's optical baseline.
-    transform: [{ translateY: 2 }],
+    // iOS aligns an inline Pressable's bottom to the text baseline, so a pill
+    // taller than the line extends UP past the baseline into the line above.
+    // The 32pt pill in a 30pt line-box needs a positive translateY to drop the
+    // pill back into its own line and sit flush with body text.
+    transform: [{ translateY: 5 }],
   },
   chipContent: {
     flexDirection: 'row',
