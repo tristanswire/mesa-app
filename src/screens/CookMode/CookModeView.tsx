@@ -225,24 +225,48 @@ export function CookModeView({
 
           <View style={{ height: spacing.lg }} />
 
-          {/* Step body with inline chips and timers */}
-          <Text role="cookModeBody" color={tc.bodyTextColor}>
-            {currentStep.segments.map((seg, i) => {
-              if (seg.type === 'text') return seg.content;
+          {/* Step body — flex-wrap layout. RN's inline-Pressable-in-Text
+              rendering is unreliable (the timer pill anchors to the text
+              baseline and forces its line taller, breaking the flow above
+              it). Splitting each text segment into per-word <Text> items
+              lets words wrap individually inside a flex row, and the pill
+              becomes an ordinary flex item that aligns naturally on its
+              line. cookModeBody lineHeight is 30; TimerToken is sized to
+              30 so rows containing a pill match rows of plain text. */}
+          <View style={styles.stepBody}>
+            {currentStep.segments.flatMap((seg, segIdx) => {
+              if (seg.type === 'text') {
+                return seg.content
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .map((word, wIdx) => (
+                    <Text
+                      key={`text-${segIdx}-${wIdx}`}
+                      role="cookModeBody"
+                      color={tc.bodyTextColor}
+                    >
+                      {word}
+                    </Text>
+                  ));
+              }
               if (seg.type === 'ingredient') {
                 const ing = currentStep.ingredients.find((x) => x.id === seg.ingredientId);
-                return (
-                  <IngredientChip key={`ing-${i}`} label={ing?.display ?? ''} theme={tc.chipTheme} />
-                );
+                return [
+                  <IngredientChip
+                    key={`ing-${segIdx}`}
+                    label={ing?.display ?? ''}
+                    theme={tc.chipTheme}
+                  />,
+                ];
               }
               const timer = currentStep.timers.find((x) => x.id === seg.timerId);
-              if (!timer) return null;
+              if (!timer) return [];
               const state = timers[timer.id];
               const status = state?.status ?? 'idle';
               const remaining = state?.remainingSeconds ?? 0;
-              return (
+              return [
                 <TimerToken
-                  key={`timer-${i}`}
+                  key={`timer-${segIdx}`}
                   label={timer.label}
                   status={status}
                   remainingSeconds={remaining}
@@ -256,10 +280,10 @@ export function CookModeView({
                       dismissCompletedTimer(timer.id);
                     }
                   }}
-                />
-              );
+                />,
+              ];
             })}
-          </Text>
+          </View>
 
           <View style={{ height: spacing.xl }} />
 
@@ -378,6 +402,17 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 24,
+  },
+  stepBody: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    // columnGap approximates a single space at the 20pt body font.
+    // rowGap stays 0 — each word/chip flex item already provides its own
+    // lineHeight (30pt), so wrapped rows have the same vertical rhythm
+    // as the prior single-Text rendering.
+    columnGap: 5,
+    rowGap: 0,
   },
   divider: {
     height: 1,

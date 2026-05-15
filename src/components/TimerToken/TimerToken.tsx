@@ -37,9 +37,11 @@ export function TimerToken({
   }
 
   return (
-    // Pressable-in-Text: on iOS, a Pressable as a direct child of <Text>
-    // renders inline. alignSelf:'center' keeps the pill vertically centered
-    // on the body's line-box across wraps.
+    // Rendered as a flex item inside the CookMode step-body wrapping row
+    // (Phase 3.24). The chip is sized to 30pt — paddingVertical 3 on a
+    // 24pt label lineHeight — so it matches cookModeBody's lineHeight and
+    // doesn't grow the row it lands in. No translateY / alignSelf hacks
+    // needed: the parent's alignItems: center handles vertical alignment.
     <Pressable
       onPress={onPress}
       hitSlop={8}
@@ -105,14 +107,8 @@ function formatTime(seconds: number): string {
 const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
-    alignSelf: 'center',
-    // iOS aligns an inline Pressable's bottom to the text baseline, so a pill
-    // taller than the line extends UP past the baseline into the line above.
-    // The 32pt pill in a 30pt line-box needs a positive translateY to drop the
-    // pill back into its own line and sit flush with body text.
-    transform: [{ translateY: 5 }],
   },
   chipContent: {
     flexDirection: 'row',
