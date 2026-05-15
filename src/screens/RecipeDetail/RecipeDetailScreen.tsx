@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   unitActive: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
   toolsSection: {
     paddingTop: spacing.xl,

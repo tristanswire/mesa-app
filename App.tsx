@@ -13,7 +13,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ensureGuestUser } from './src/data/user';
 import { useDatabaseMigrations } from './src/db/migrate';
-import { seedMockRecipesIfEmpty } from './src/db/seed';
 import { linking } from './src/navigation/linking';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { colors } from './src/theme';
@@ -27,14 +26,13 @@ export default function App() {
   });
 
   const { success: migrationsReady, error: migrationsError } = useDatabaseMigrations();
-  const [seedReady, setSeedReady] = useState(false);
+  const [userReady, setUserReady] = useState(false);
 
   useEffect(() => {
     if (!migrationsReady) return;
     (async () => {
       await ensureGuestUser();
-      await seedMockRecipesIfEmpty();
-      setSeedReady(true);
+      setUserReady(true);
     })();
   }, [migrationsReady]);
 
@@ -54,7 +52,7 @@ export default function App() {
     );
   }
 
-  if (!fontsLoaded || !migrationsReady || !seedReady) {
+  if (!fontsLoaded || !migrationsReady || !userReady) {
     return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
   }
 

@@ -18,8 +18,17 @@ import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-// TODO Phase 3: derive greeting from device time-of-day
-const GREETING = 'Good evening';
+// Time-of-day greeting. No name suffix yet — user.name isn't stored in any
+// data layer (ProfileScreen still uses a hardcoded mock). When auth lands and
+// user_preferences gains a name field, append `, ${name}` here.
+function getTimeGreeting(now: Date = new Date()): string {
+  const hour = now.getHours();
+  if (hour < 5) return 'Good night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 22) return 'Good evening';
+  return 'Good night';
+}
 
 function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
   return value === 'terracotta' || value === 'olive' ? value : undefined;
@@ -33,6 +42,7 @@ export function HomeScreen() {
   const cardWidth = width * 0.65;
 
   const { lastCooked, inYourBank, worthATry, ready } = useHomeData();
+  const greeting = getTimeGreeting();
 
   if (!ready) {
     return (
@@ -45,8 +55,8 @@ export function HomeScreen() {
             { paddingTop: insets.top + spacing.lg },
           ]}
         >
-          <SectionLabel>{GREETING}</SectionLabel>
-          <View style={{ height: spacing.xs }} />
+          <Text role="body" style={styles.greeting}>{greeting}</Text>
+          <View style={{ height: spacing.base }} />
           <Skeleton height={32} width="80%" />
 
           <View style={{ height: spacing.lg }} />
@@ -135,8 +145,8 @@ export function HomeScreen() {
           ]}
         >
           {/* Greeting */}
-          <SectionLabel>{GREETING}</SectionLabel>
-          <View style={{ height: spacing.xs }} />
+          <Text role="body" style={styles.greeting}>{greeting}</Text>
+          <View style={{ height: spacing.base }} />
           <Text role="headline">Pick up where you left off.</Text>
 
           {/* Hero — last cooked */}
@@ -230,6 +240,14 @@ const styles = StyleSheet.create({
   },
   cardWrap: {
     marginRight: spacing.md,
+  },
+  // Warm, name-personalized greeting sitting above the dashboard headline.
+  // Slightly larger and heavier than body so it feels addressed-to-you, but
+  // intentionally below headline scale to keep "Pick up where you left off."
+  // as the primary callout.
+  greeting: {
+    fontSize: 18,
+    fontWeight: '500',
   },
   bankRow: {
     flexDirection: 'row',
