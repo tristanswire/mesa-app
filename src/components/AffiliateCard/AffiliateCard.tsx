@@ -1,13 +1,19 @@
-import { ExternalLink } from 'lucide-react-native';
-import React from 'react';
 import {
-  Image,
-  Linking,
-  Pressable,
-  StyleSheet,
-  View,
-  type ImageSourcePropType,
-} from 'react-native';
+  BookOpen,
+  ChefHat,
+  Cookie,
+  ExternalLink,
+  Package,
+  Scale,
+  ShoppingBag,
+  Thermometer,
+  Utensils,
+  UtensilsCrossed,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react-native';
+import React from 'react';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { buildAffiliateUrl, buildPartnerSearchUrl } from '../../data/affiliate';
 import { recordClick, type ClickSource } from '../../data/clicks';
 import { colors, radii, shadows, spacing } from '../../theme';
@@ -17,7 +23,6 @@ export interface AffiliateCardProps {
   productName: string;
   price: string;
   partner: string;
-  imageSource?: ImageSourcePropType;
   theme?: 'light' | 'dark';
   // Click context — when all four are provided, the card handles its own
   // press: records the click and opens the partner URL via system browser.
@@ -29,11 +34,30 @@ export interface AffiliateCardProps {
   onPress?: () => void;
 }
 
+// Tool product-name → Lucide icon. Order matters: narrower categories first so
+// e.g. "instant pot" doesn't fall into ChefHat's "pot" rule and "loaf pan"
+// doesn't fall into ChefHat's "pan". Word boundaries (\b) guard against
+// substring hits like "panini" matching "pan" or "baguette" matching "bag".
+function getToolIcon(productName: string): LucideIcon {
+  const name = productName.toLowerCase();
+
+  if (/instant pot|air fryer|blender|mixer|food processor|processor|appliance|machine/.test(name)) return Zap;
+  if (/cookbook|\bbook\b/.test(name)) return BookOpen;
+  if (/thermometer/.test(name)) return Thermometer;
+  if (/\bscale\b|measuring cup|measuring spoon/.test(name)) return Scale;
+  if (/baking sheet|cake pan|muffin|loaf|pie dish|rolling pin|\bbaking\b/.test(name)) return Cookie;
+  if (/knife|blade|sharpener|cutting board/.test(name)) return UtensilsCrossed;
+  if (/container|\bjar\b|storage|\bbag(s)?\b|\bwrap(s|per|ping)?\b/.test(name)) return Package;
+  if (/skillet|\bwok\b|saucepan|dutch oven|\bpan(s)?\b|\bpot(s)?\b/.test(name)) return ChefHat;
+  if (/spatula|spoon|tongs|whisk|ladle|peeler|grater|zester|utensil/.test(name)) return Utensils;
+
+  return ShoppingBag;
+}
+
 export function AffiliateCard({
   productName,
   price,
   partner,
-  imageSource,
   theme = 'light',
   toolId,
   recipeId,
@@ -42,6 +66,7 @@ export function AffiliateCard({
   onPress,
 }: AffiliateCardProps) {
   const isDark = theme === 'dark';
+  const Icon = getToolIcon(productName);
 
   const handlePress = async () => {
     if (toolId && recipeId && source) {
@@ -78,18 +103,12 @@ export function AffiliateCard({
         pressed && styles.pressed,
       ]}
     >
-      {/* Thumbnail */}
+      {/* Category icon — replaces the prior image placeholder. Real product
+          photos are unreliable (white backgrounds, inconsistent sizing); a
+          Lucide icon keyed off the product name stays consistent across all
+          cards. */}
       <View style={styles.thumbnail}>
-        {imageSource ? (
-          <Image source={imageSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              isDark ? styles.thumbnailPlaceholderDark : styles.thumbnailPlaceholderLight,
-            ]}
-          />
-        )}
+        <Icon size={28} strokeWidth={1.5} color={colors.oliveDark} />
       </View>
 
       {/* Text stack */}
@@ -144,16 +163,10 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: radii.sm,
-    overflow: 'hidden',
+    backgroundColor: colors.oat,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
-  },
-  thumbnailPlaceholderLight: {
-    backgroundColor: colors.oliveDark,
-    opacity: 0.15,
-  },
-  thumbnailPlaceholderDark: {
-    backgroundColor: colors.cream,
-    opacity: 0.15,
   },
   textStack: {
     flex: 1,

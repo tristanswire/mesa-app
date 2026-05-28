@@ -40,6 +40,12 @@ export function RecipeDetailScreen() {
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
   const [system, setSystem] = useState<MeasurementSystem>('imperial');
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Reset when the recipe id changes so a fresh load gets one fair shot at
+  // fetching the image before we decide it failed.
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
+  useEffect(() => {
+    setHeroImageFailed(false);
+  }, [recipe?.id]);
   // Mirrors the persisted recipe.category so the row updates instantly on save
   // without round-tripping through useRecipeDetail's one-shot fetch.
   const [category, setCategory] = useState<RecipeCategory | null>(null);
@@ -129,7 +135,7 @@ export function RecipeDetailScreen() {
     ? recipe.ingredients
     : recipe.ingredients.slice(0, 4);
   const hasMoreIngredients = recipe.ingredients.length > 4;
-  const tintKey = recipe.tintKey ?? undefined;
+  const showHeroPlaceholder = !recipe.imageUrl || heroImageFailed;
 
   return (
     <>
@@ -141,14 +147,15 @@ export function RecipeDetailScreen() {
       >
         {/* ── Hero image (clean, no overlay) ─────────────────────────── */}
         <View style={styles.hero}>
-          {recipe.imageUrl ? (
+          {showHeroPlaceholder ? (
+            <RecipeImagePlaceholder />
+          ) : (
             <Image
-              source={{ uri: recipe.imageUrl }}
+              source={{ uri: recipe.imageUrl! }}
+              onError={() => setHeroImageFailed(true)}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
-          ) : (
-            <RecipeImagePlaceholder tintKey={tintKey} />
           )}
         </View>
 

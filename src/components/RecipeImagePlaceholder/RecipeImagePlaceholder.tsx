@@ -1,40 +1,19 @@
+import { UtensilsCrossed } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
 
-const PLACEHOLDER_PALETTE = [
-  colors.terracotta,
-  colors.olive,
-  colors.oliveDark,
-  colors.pine,
-  colors.clay,
-];
-
-const TINT_COLORS = {
-  terracotta: colors.terracotta,
-  olive: colors.olive,
-} as const;
-
 export interface RecipeImagePlaceholderProps {
-  tintKey?: 'terracotta' | 'olive';
-  title?: string;
-  // When provided, the placeholder sizes itself via aspectRatio (RecipeCard usage).
-  // When omitted, flex: 1 fills the parent container (RecipeDetailScreen hero usage).
+  // Optional aspectRatio for callers (RecipeCard grid + hero) that size the
+  // image area by ratio. Omit to let the placeholder fill its parent via
+  // flex: 1 (RecipeDetail hero, where the parent View sets the aspectRatio).
   aspectRatio?: number;
 }
 
-export function RecipeImagePlaceholder({
-  tintKey,
-  title,
-  aspectRatio,
-}: RecipeImagePlaceholderProps) {
-  const base = tintKey
-    ? TINT_COLORS[tintKey]
-    : PLACEHOLDER_PALETTE[
-        (title ?? '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) %
-          PLACEHOLDER_PALETTE.length
-      ];
-
+// Recipe fallback hero. Renders an Oat (#E9DDCF) field with a centered
+// Terracotta UtensilsCrossed glyph. Used wherever a recipe has no imageUrl
+// or where the image failed to load (onError → render this).
+export function RecipeImagePlaceholder({ aspectRatio }: RecipeImagePlaceholderProps) {
   return (
     <View
       style={[
@@ -42,12 +21,7 @@ export function RecipeImagePlaceholder({
         aspectRatio !== undefined ? { aspectRatio } : undefined,
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: base }]} />
-      <View style={styles.stripeContainer} pointerEvents="none">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <View key={i} style={[styles.stripe, { left: i * 24 - 48 }]} />
-        ))}
-      </View>
+      <UtensilsCrossed size={40} strokeWidth={1.5} color={colors.terracotta} />
     </View>
   );
 }
@@ -55,19 +29,9 @@ export function RecipeImagePlaceholder({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.oat,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
-  },
-  stripeContainer: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    transform: [{ rotate: '45deg' }, { scaleX: 2 }],
-    overflow: 'hidden',
-  },
-  stripe: {
-    position: 'absolute',
-    top: -200,
-    bottom: -200,
-    width: 12,
-    backgroundColor: 'rgba(255,255,255,0.07)',
   },
 });

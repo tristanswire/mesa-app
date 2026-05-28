@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   Pressable,
@@ -34,7 +34,6 @@ export function RecipeCard({
   category,
   imageSource,
   imageUrl,
-  tintKey,
   variant,
   label,
   onPress,
@@ -43,6 +42,9 @@ export function RecipeCard({
   const isHero = variant === 'hero';
   const resolvedImageSource = imageSource ?? (imageUrl ? { uri: imageUrl } : undefined);
   const badge = category ?? tag;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showPlaceholder = !resolvedImageSource || imageFailed;
+  const aspectRatio = isHero ? 16 / 9 : 1;
 
   return (
     <Pressable
@@ -55,25 +57,24 @@ export function RecipeCard({
         pressed && styles.pressed,
       ]}
     >
-      {/* Image / Placeholder */}
-      {resolvedImageSource ? (
+      {/* Image / Placeholder. onError flips to the styled placeholder when a
+          URL fails to load (broken link, 404, network) so the card never
+          shows the system's blank/grey image state. */}
+      {showPlaceholder ? (
+        <View style={[styles.image, isHero ? styles.heroImage : styles.gridImage]}>
+          <RecipeImagePlaceholder aspectRatio={aspectRatio} />
+        </View>
+      ) : (
         <Image
-          source={resolvedImageSource}
+          source={resolvedImageSource!}
+          onError={() => setImageFailed(true)}
           style={[
             styles.image,
             isHero ? styles.heroImage : styles.gridImage,
-            { aspectRatio: isHero ? 16 / 9 : 1 },
+            { aspectRatio },
           ]}
           resizeMode="cover"
         />
-      ) : (
-        <View style={[styles.image, isHero ? styles.heroImage : styles.gridImage]}>
-          <RecipeImagePlaceholder
-            title={title}
-            aspectRatio={isHero ? 16 / 9 : 1}
-            tintKey={tintKey}
-          />
-        </View>
       )}
 
       {/* Content */}
