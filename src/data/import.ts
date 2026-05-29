@@ -1,4 +1,5 @@
 import * as Crypto from 'expo-crypto';
+import { FunctionsFetchError } from '@supabase/supabase-js';
 import { db } from '../db/client';
 import { ingredients, prepItems, recipes, steps, tools } from '../db/schema';
 import { supabase } from '../supabase/client';
@@ -18,7 +19,19 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
 
     if (error) {
       console.error('[import] function invoke error', error);
-      return { success: false, error: 'Could not reach the recipe import service.' };
+      // FunctionsFetchError means the request never reached the backend at all
+      // (DNS failure, offline, or a paused Supabase project) — distinct from an
+      // HTTP error response, which means we reached it but it returned 4xx/5xx.
+      if (error instanceof FunctionsFetchError) {
+        return {
+          success: false,
+          error: "Mesa's recipe service is temporarily unavailable. Please try again in a few minutes.",
+        };
+      }
+      return {
+        success: false,
+        error: 'Could not reach the recipe import service. Try a different link.',
+      };
     }
 
     if (!data || !data.success) {
