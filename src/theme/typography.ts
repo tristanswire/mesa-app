@@ -47,13 +47,13 @@ export const typography: Record<TypographyRole, TypographyStyle> = {
     fontWeight: '600',
     color: 'ink',
   },
-  /** Allcaps category labels — rendered in clay (decorative, large enough) */
+  /** Allcaps category labels — Olive Dark (AA on Cream/Oat; Clay fails contrast) */
   sectionLabel: {
     fontFamily: Inter.semiBold,
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 2,
-    color: 'clay',
+    color: 'oliveDark',
     textTransform: 'uppercase',
   },
   /** Standard reading text */

@@ -189,7 +189,7 @@ export function RecipesScreen() {
               <EmptyState
                 icon={Bookmark}
                 title="No recipes yet."
-                description="Import a recipe from any cooking site, take a photo, or enter one manually. Your library starts here."
+                description="Paste a recipe link from any cooking site and Mesa cleans it up. Your library starts here."
                 ctaLabel="Import a recipe"
                 onCta={() => navigation.navigate('Import')}
               />

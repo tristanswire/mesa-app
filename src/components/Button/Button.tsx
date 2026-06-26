@@ -5,7 +5,9 @@ import { colors, radii, spacing } from '../../theme';
 import { Text } from '../Text';
 
 export interface ButtonProps {
-  variant: 'primary' | 'secondary';
+  // `cookPrimary` is the primary CTA on the Pine cook surface — a Cream fill with
+  // Pine text. The global `primary` (Terracotta) fails contrast on Pine (2.22:1).
+  variant: 'primary' | 'secondary' | 'cookPrimary';
   label: string;
   onPress: () => void;
   disabled?: boolean;
@@ -28,8 +30,14 @@ export function Button({
     onPress();
   };
 
-  const bg = variant === 'primary' ? colors.terracotta : colors.oat;
-  const textColor = variant === 'primary' ? 'cream' : 'ink';
+  const bg =
+    variant === 'primary'
+      ? colors.terracotta
+      : variant === 'cookPrimary'
+        ? colors.cream
+        : colors.oat;
+  const textColor =
+    variant === 'primary' ? 'cream' : variant === 'cookPrimary' ? 'pine' : 'ink';
 
   return (
     <Pressable

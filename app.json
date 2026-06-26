@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tristanswire.mesa",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "infoPlist": {
         "AppGroup": "group.com.tristanswire.mesa.shared",
         "ITSAppUsesNonExemptEncryption": false

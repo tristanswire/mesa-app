@@ -30,12 +30,12 @@ export function StepCard({
     >
       {/* Header row */}
       <View style={styles.header}>
-        <SectionLabel color={isDark ? 'clay' : 'clay'}>
+        <SectionLabel color={isDark ? 'oat' : 'oliveDark'}>
           {`STEP ${stepNumber} OF ${totalSteps}`}
         </SectionLabel>
         <Text
           role="cookModeStepNumber"
-          color={isDark ? 'creamMuted' : 'clay'}
+          color={isDark ? 'creamMuted' : 'terracotta'}
         >
           {String(stepNumber).padStart(2, '0')}
         </Text>
@@ -49,7 +49,7 @@ export function StepCard({
       {/* Next preview */}
       {nextPreview && (
         <View style={styles.nextPreview}>
-          <SectionLabel color={isDark ? 'clay' : 'clay'}>NEXT</SectionLabel>
+          <SectionLabel color={isDark ? 'oat' : 'oliveDark'}>NEXT</SectionLabel>
           <View style={{ height: spacing.xs }} />
           <Text role="caption" color={isDark ? 'creamMuted' : 'oliveDark'}>
             {nextPreview}

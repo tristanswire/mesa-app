@@ -164,7 +164,7 @@ export function AhaMomentScreen() {
         <View style={styles.paddingH}>
           <Button
             variant="primary"
-            label="Import your first recipe"
+            label="Try it with our sample recipe"
             onPress={handleImportFirst}
           />
         </View>
@@ -175,7 +175,7 @@ export function AhaMomentScreen() {
           style={({ pressed }) => [styles.centerRow, pressed && { opacity: 0.6 }]}
         >
           <Text role="caption" color="terracotta" align="center">
-            Use our sample recipe instead →
+            Skip for now →
           </Text>
         </Pressable>
       </ScrollView>

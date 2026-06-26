@@ -7,7 +7,7 @@ export interface SectionLabelProps {
   color?: ColorToken;
 }
 
-export function SectionLabel({ children, color = 'clay' }: SectionLabelProps) {
+export function SectionLabel({ children, color = 'oliveDark' }: SectionLabelProps) {
   return (
     <Text role="sectionLabel" color={color}>
       {children}

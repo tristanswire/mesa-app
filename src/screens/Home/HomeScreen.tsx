@@ -188,11 +188,11 @@ export function HomeScreen() {
             </>
           )}
 
-          {/* Worth a Try */}
+          {/* More from the user's own library — not discovery content in V1 */}
           {worthATry.length > 0 && (
             <>
               <View style={{ height: spacing.xl }} />
-              <SectionLabel>WORTH A TRY</SectionLabel>
+              <SectionLabel>MORE FROM YOUR BANK</SectionLabel>
               <View style={{ height: spacing.md }} />
               <ScrollView
                 horizontal

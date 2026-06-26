@@ -175,19 +175,3 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
     })),
   };
 }
-
-export async function getHomeData(): Promise<{
-  lastCooked: RecipeListItem | null;
-  inYourBank: RecipeListItem[];
-  worthATry: RecipeListItem[];
-}> {
-  const all = await listRecipes();
-  if (all.length === 0) {
-    return { lastCooked: null, inYourBank: [], worthATry: [] };
-  }
-  return {
-    lastCooked: all[0],
-    inYourBank: all.slice(0, 2),
-    worthATry: all.slice(2, 5),
-  };
-}

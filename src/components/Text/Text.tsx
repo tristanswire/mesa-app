@@ -13,16 +13,29 @@ export interface TextProps {
   align?: 'left' | 'center' | 'right';
   numberOfLines?: number;
   style?: TextStyle;
+  // Caps how far iOS Dynamic Type can scale this text on top of its base size.
+  // Used by Cook Mode's M/L/XL slider so an XL size + max accessibility setting
+  // can't compound into a layout-breaking size. Undefined = RN default (uncapped).
+  maxFontSizeMultiplier?: number;
   children: React.ReactNode;
 }
 
-export function Text({ role, color, align, numberOfLines, style, children }: TextProps) {
+export function Text({
+  role,
+  color,
+  align,
+  numberOfLines,
+  style,
+  maxFontSizeMultiplier,
+  children,
+}: TextProps) {
   const spec = typography[role];
   const resolvedColor = colors[color ?? spec.color];
 
   return (
     <RNText
       numberOfLines={numberOfLines}
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
       style={[
         {
           fontFamily: spec.fontFamily,

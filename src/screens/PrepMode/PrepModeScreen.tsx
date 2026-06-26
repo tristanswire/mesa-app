@@ -50,7 +50,8 @@ export function PrepModeScreen() {
   }
 
   const prepItems = recipe.prepItems;
-  const tools = recipe.tools;
+  // Max 2 affiliate cards per surface (matches PostCook).
+  const tools = recipe.tools.slice(0, 2);
   const hasNoPrep = prepItems.length === 0;
 
   if (hasNoPrep) {

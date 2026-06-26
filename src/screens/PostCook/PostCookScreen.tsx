@@ -258,7 +258,7 @@ export function PostCookScreen() {
         {displayedTools.length > 0 && (
           <>
             <View style={styles.paddingH}>
-              <SectionLabel color="clay">USED IN THIS RECIPE</SectionLabel>
+              <SectionLabel color="oat">USED IN THIS RECIPE</SectionLabel>
             </View>
             <View style={{ height: spacing.md }} />
             <ScrollView
@@ -301,7 +301,7 @@ export function PostCookScreen() {
             { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg },
           ]}
         >
-          <Button variant="primary" label="Save" onPress={handleSave} />
+          <Button variant="cookPrimary" label="Save" onPress={handleSave} />
         </View>
       )}
     </View>

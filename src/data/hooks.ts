@@ -87,14 +87,42 @@ type HomeData = {
 export function useHomeData(): HomeData {
   const { data, ready } = useRecipesList();
 
+  // The "last cooked" hero is driven by real cook history, not the recipe list.
+  // Live query so the hero updates the moment a cook completes and the user
+  // returns to Home. useRecipesList keeps its userId private, so re-resolve here
+  // (a single cheap AsyncStorage read).
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    getCurrentUserId().then(setUserId).catch(() => setUserId(null));
+  }, []);
+
+  const lastCookQuery = db
+    .select({ recipeId: cooks.recipeId })
+    .from(cooks)
+    .where(and(eq(cooks.userId, userId ?? NO_USER), isNotNull(cooks.completedAt)))
+    .orderBy(desc(cooks.completedAt))
+    .limit(1);
+  const { data: lastCookData } = useLiveQuery(lastCookQuery, [userId]);
+
   if (!ready) {
     return { lastCooked: null, inYourBank: [], worthATry: [], ready: false };
   }
 
+  // Most recent completed cook → its recipe. A new user with no completed cook
+  // falls back to null (no hero) rather than showing an un-cooked recipe under
+  // the "Last cooked" label.
+  const lastCookedId = lastCookData?.[0]?.recipeId ?? null;
+  const lastCooked = lastCookedId
+    ? data.find((r) => r.id === lastCookedId) ?? null
+    : null;
+
+  // Exclude the hero from the rows below so no recipe appears twice on Home.
+  const rest = lastCooked ? data.filter((r) => r.id !== lastCooked.id) : data;
+
   return {
-    lastCooked: data[0] ?? null,
-    inYourBank: data.slice(0, 2),
-    worthATry: data.slice(2, 5),
+    lastCooked,
+    inYourBank: rest.slice(0, 2),
+    worthATry: rest.slice(2, 5),
     ready: true,
   };
 }

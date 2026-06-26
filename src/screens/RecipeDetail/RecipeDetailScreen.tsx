@@ -136,6 +136,8 @@ export function RecipeDetailScreen() {
     : recipe.ingredients.slice(0, 4);
   const hasMoreIngredients = recipe.ingredients.length > 4;
   const showHeroPlaceholder = !recipe.imageUrl || heroImageFailed;
+  // Max 2 affiliate cards per surface (matches Prep Mode and PostCook).
+  const displayedTools = recipe.tools.slice(0, 2);
 
   return (
     <>
@@ -305,12 +307,12 @@ export function RecipeDetailScreen() {
         </View>
 
         {/* ── Tools ──────────────────────────────────────────────────── */}
-        {recipe.tools.length > 0 && (
+        {displayedTools.length > 0 && (
           <View style={[styles.section, styles.toolsSection]}>
             <SectionLabel>TOOLS</SectionLabel>
             <View style={{ height: spacing.md }} />
             <View style={styles.toolsList}>
-              {recipe.tools.map((tool) => (
+              {displayedTools.map((tool) => (
                 <AffiliateCard
                   key={tool.id}
                   productName={tool.name}
