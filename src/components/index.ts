@@ -63,3 +63,6 @@ export type { EmptyStateProps } from './EmptyState';
 
 export { CategoryPickerSheet } from './CategoryPickerSheet';
 export type { CategoryPickerSheetProps } from './CategoryPickerSheet';
+
+export { ActionSheet } from './ActionSheet';
+export type { ActionSheetItem, ActionSheetProps } from './ActionSheet';

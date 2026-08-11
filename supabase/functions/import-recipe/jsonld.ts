@@ -1,4 +1,5 @@
 import type { ParsedIngredient, ParsedPrepItem, ParsedTool } from './types.ts';
+import { stripParentheticals } from './text.ts';
 
 export type ParsedIngredientWithId = ParsedIngredient & { id: string };
 
@@ -165,7 +166,12 @@ function parseIngredients(value: any): ParsedIngredientWithId[] {
   if (!Array.isArray(value)) return [];
 
   return value
-    .map((raw) => stripHtml(getString(raw)))
+    // Parentheticals go before splitIngredient, not after: sites embed metric
+    // conversions mid-string ("2 cups sugar (200g), sifted"), so leaving them
+    // in would let a paren'd comma decide the name/prep split — and this is
+    // also what annotateRecipe receives as its ingredient list.
+    .map((raw) => stripParentheticals(stripHtml(getString(raw))))
+    // An entry that was nothing but a parenthetical is now empty and drops out.
     .filter((text) => text.length > 0)
     .map((text, idx) => {
       const split = splitIngredient(text);

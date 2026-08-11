@@ -6,10 +6,15 @@ import {
   View,
   type ImageSourcePropType,
 } from 'react-native';
-import { colors, radii, shadows, spacing } from '../../theme';
+import { colors, radii, shadows, spacing, typography } from '../../theme';
 import { RecipeImagePlaceholder } from '../RecipeImagePlaceholder';
 import { SectionLabel } from '../SectionLabel';
 import { Text } from '../Text';
+
+// Grid cards reserve a fixed two-line title block so rows line up. Derived from
+// the body token rather than hardcoded, so a type-scale change carries through.
+const GRID_TITLE_LINES = 2;
+const BODY_LINE_HEIGHT = typography.body.lineHeight ?? typography.body.fontSize * 1.6;
 
 export interface RecipeCardProps {
   title: string;
@@ -85,18 +90,20 @@ export function RecipeCard({
           </View>
         )}
 
-        <Text role="body" style={styles.title} numberOfLines={2}>
+        <Text
+          role="body"
+          style={isHero ? styles.title : styles.gridTitle}
+          numberOfLines={2}
+        >
           {title}
         </Text>
 
+        {/* One string, not three Texts — a row of siblings can't ellipsize as a
+            unit, and this line has to stay exactly one line tall. */}
         <View style={styles.metaRow}>
-          <Text role="caption">{duration}</Text>
-          {badge && (
-            <>
-              <Text role="caption" color="oliveDark"> · </Text>
-              <Text role="caption">{badge}</Text>
-            </>
-          )}
+          <Text role="caption" numberOfLines={1}>
+            {badge ? `${duration} · ${badge}` : duration}
+          </Text>
         </View>
 
         {isHero && ctaLabel && (
@@ -142,6 +149,15 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '600',
     marginBottom: spacing.xs,
+  },
+  // Grid cards sit in rows and columns (Recipes grid, Home's horizontal rows),
+  // so every card has to be the same height regardless of title length. The
+  // title block always occupies two lines — a one-line title just leaves the
+  // second line empty instead of pulling the meta row up.
+  gridTitle: {
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+    height: GRID_TITLE_LINES * BODY_LINE_HEIGHT,
   },
   metaRow: {
     flexDirection: 'row',

@@ -1,10 +1,14 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type RootStackParamList = {
   Main: undefined;
   Onboarding: undefined;
 };
 
 export type MainStackParamList = {
-  Tabs: undefined;
+  // Nested params so callers can pop back to a specific tab —
+  // e.g. RecipeDetail returning to the library after a delete.
+  Tabs: NavigatorScreenParams<TabsParamList> | undefined;
   RecipeDetail: { recipeId: string };
   PrepMode: { recipeId: string };
   CookMode: { recipeId: string; stepIndex?: number };

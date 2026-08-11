@@ -1,6 +1,15 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../db/client';
-import { recipes } from '../db/schema';
+import {
+  clicks,
+  cookPrepState,
+  cooks,
+  ingredients,
+  prepItems,
+  recipes,
+  steps,
+  tools,
+} from '../db/schema';
 import {
   StepIngredientsSchema,
   StepSegmentsSchema,
@@ -62,6 +71,9 @@ export type RecipeDetail = {
   category: RecipeCategory | null;
   tintKey: 'terracotta' | 'olive' | null;
   imageUrl: string | null;
+  // Null for manual/photo recipes — the detail screen hides "View Original"
+  // when there's nothing to open.
+  sourceUrl: string | null;
   ingredients: { id: string; amount: string; name: string; prep: string | null }[];
   steps: {
     id: string;
@@ -123,6 +135,51 @@ export async function setRecipeCategory(
     .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
 }
 
+// Hard-deletes a recipe and everything hanging off it. The schema declares
+// `onDelete: 'cascade'` on every child FK, but nothing in the app ever runs
+// `PRAGMA foreign_keys = ON` (SQLite defaults it OFF), so those cascades never
+// fire — each child table has to be cleared explicitly, deepest first, or the
+// rows survive as orphans. Wrapped in a transaction so a mid-way failure can't
+// leave a half-deleted recipe behind.
+export async function deleteRecipe(recipeId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+
+  // Ownership check up front — the delete below is scoped to this user, and
+  // bailing early avoids clearing children of someone else's recipe.
+  const owned = await db
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+  if (owned.length === 0) return;
+
+  db.transaction((tx) => {
+    // cook_prep_state points at both cooks and prep_items, so it goes first.
+    tx.delete(cookPrepState)
+      .where(
+        or(
+          inArray(
+            cookPrepState.cookId,
+            tx.select({ id: cooks.id }).from(cooks).where(eq(cooks.recipeId, recipeId)),
+          ),
+          inArray(
+            cookPrepState.prepItemId,
+            tx.select({ id: prepItems.id }).from(prepItems).where(eq(prepItems.recipeId, recipeId)),
+          ),
+        ),
+      )
+      .run();
+    tx.delete(clicks).where(eq(clicks.recipeId, recipeId)).run();
+    tx.delete(cooks).where(eq(cooks.recipeId, recipeId)).run();
+    tx.delete(tools).where(eq(tools.recipeId, recipeId)).run();
+    tx.delete(prepItems).where(eq(prepItems.recipeId, recipeId)).run();
+    tx.delete(steps).where(eq(steps.recipeId, recipeId)).run();
+    tx.delete(ingredients).where(eq(ingredients.recipeId, recipeId)).run();
+    tx.delete(recipes)
+      .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
+      .run();
+  });
+}
+
 export async function getRecipe(id: string): Promise<RecipeDetail | null> {
   const result = await db.query.recipes.findFirst({
     where: eq(recipes.id, id),
@@ -153,6 +210,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
     category: normalizeCategory(result.category),
     tintKey: result.tintKey as 'terracotta' | 'olive' | null,
     imageUrl: result.imageUrl,
+    sourceUrl: result.sourceUrl,
     ingredients: result.ingredients.map((ing) => ({
       id: ing.id,
       amount: ing.amount,

@@ -2,9 +2,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { ChevronLeft, MoreVertical } from 'lucide-react-native';
+import { ChevronLeft, ExternalLink, MoreVertical, Trash2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActionSheet, type ActionSheetItem } from '../../components/ActionSheet';
 import { AffiliateCard } from '../../components/AffiliateCard';
 import { Button } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
@@ -20,6 +21,7 @@ import {
   type MeasurementSystem,
 } from '../../data/preferences';
 import {
+  deleteRecipe,
   RECIPE_CATEGORY_LABELS,
   setRecipeCategory,
   type RecipeCategory,
@@ -40,6 +42,7 @@ export function RecipeDetailScreen() {
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
   const [system, setSystem] = useState<MeasurementSystem>('imperial');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   // Reset when the recipe id changes so a fresh load gets one fair shot at
   // fetching the image before we decide it failed.
   const [heroImageFailed, setHeroImageFailed] = useState(false);
@@ -81,6 +84,43 @@ export function RecipeDetailScreen() {
     setMeasurementSystem(next).catch((e) =>
       console.error('[recipeDetail] failed to persist measurement system', e),
     );
+  };
+
+  const handleViewOriginal = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Can't open link", 'This recipe’s source link is no longer valid.');
+      }
+    } catch (e) {
+      console.error('[recipeDetail] openURL failed', e);
+      Alert.alert("Can't open link", 'This recipe’s source link is no longer valid.');
+    }
+  };
+
+  const handleDelete = (recipeId: string) => {
+    Alert.alert('Delete this recipe?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          deleteRecipe(recipeId)
+            .then(() => {
+              // Land on the library rather than whichever screen pushed this
+              // one — Home's hero could still be pointing at the deleted recipe
+              // for a frame while its live query catches up.
+              navigation.navigate('Tabs', { screen: 'Recipes' });
+            })
+            .catch((e) => {
+              console.error('[recipeDetail] delete failed', e);
+              Alert.alert('Delete failed', 'Something went wrong. Please try again.');
+            });
+        },
+      },
+    ]);
   };
 
   // Phase 3.11 will add a real error state. For now, route back if a phantom ID lands here.
@@ -139,6 +179,26 @@ export function RecipeDetailScreen() {
   // Max 2 affiliate cards per surface (matches Prep Mode and PostCook).
   const displayedTools = recipe.tools.slice(0, 2);
 
+  // "View Original" only exists for imported recipes — manual/photo ones have
+  // no sourceUrl to open.
+  const menuItems: ActionSheetItem[] = [
+    ...(recipe.sourceUrl
+      ? [
+          {
+            label: 'View Original',
+            icon: ExternalLink,
+            onPress: () => void handleViewOriginal(recipe.sourceUrl!),
+          },
+        ]
+      : []),
+    {
+      label: 'Delete Recipe',
+      icon: Trash2,
+      destructive: true,
+      onPress: () => handleDelete(recipe.id),
+    },
+  ];
+
   return (
     <>
       <StatusBar style="dark" />
@@ -179,9 +239,7 @@ export function RecipeDetailScreen() {
           </Text>
           <IconButton
             icon={MoreVertical}
-            onPress={() => {
-              // TODO Phase 3: recipe options menu
-            }}
+            onPress={() => setMenuOpen(true)}
             accessibilityLabel="Recipe options"
             size="md"
             tint="pine"
@@ -333,6 +391,13 @@ export function RecipeDetailScreen() {
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
+
+      <ActionSheet
+        visible={menuOpen}
+        title={recipe.title}
+        items={menuItems}
+        onClose={() => setMenuOpen(false)}
+      />
 
       <CategoryPickerSheet
         visible={pickerOpen}
