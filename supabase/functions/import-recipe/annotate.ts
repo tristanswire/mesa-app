@@ -27,6 +27,7 @@ export async function annotateRecipe(
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5',
     max_tokens: 3000,
+    temperature: 0,
     messages: [
       {
         role: 'user',
@@ -92,7 +93,7 @@ export async function annotateRecipe(
   };
 }
 
-function buildFallbackRecipe(partial: PartialRecipe): ParsedRecipe {
+export function buildFallbackRecipe(partial: PartialRecipe): ParsedRecipe {
   const cleanIngredients = partial.ingredients.map(({ id: _id, ...rest }) => rest);
 
   return {

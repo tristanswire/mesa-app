@@ -222,14 +222,18 @@ export function ProfileScreen() {
           <Text role="body" color="terracotta" align="center">Sign out</Text>
         </Pressable>
 
-        {/* ── Debug links ─────────────────────────────────────────── */}
-        <View style={{ height: spacing.lg }} />
-        <Pressable
-          onPress={() => navigation.navigate('Showcase')}
-          style={({ pressed }) => [styles.centerLink, pressed && { opacity: 0.6 }]}
-        >
-          <Text role="caption" color="oliveDark" align="center">Component Showcase</Text>
-        </Pressable>
+        {/* ── Debug links — dev builds only; route stays registered ── */}
+        {__DEV__ && (
+          <>
+            <View style={{ height: spacing.lg }} />
+            <Pressable
+              onPress={() => navigation.navigate('Showcase')}
+              style={({ pressed }) => [styles.centerLink, pressed && { opacity: 0.6 }]}
+            >
+              <Text role="caption" color="oliveDark" align="center">Component Showcase</Text>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </>
   );
