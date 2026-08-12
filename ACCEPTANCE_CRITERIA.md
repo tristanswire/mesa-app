@@ -186,7 +186,7 @@ These were flagged "Missing" in the April report. The audit must explicitly conf
 ## 6. Backend / Infra (🟢)
 
 - 🟢 6.1 — Supabase project Active (note: free tier auto-pauses ~7 days idle; known dev-friction issue)
-- 🟢 6.2 — `verify_jwt` status — currently `false` as a temporary unblock. **MUST revert to legacy JWT keys before external beta.** Flag current state.
+- 🟢 6.2 — `verify_jwt` status — **enabled** (`verify_jwt = true` in `supabase/config.toml`, closed as MESA-012). Imports therefore require the client to ship the **legacy JWT anon key** (`eyJ...`) in `EXPO_PUBLIC_SUPABASE_ANON_KEY`; a publishable key (`sb_publishable_*`) is rejected by the gateway as `UNAUTHORIZED_INVALID_JWT_FORMAT` and breaks import with no app-side code change.
 - 🟢 6.3 — Recipe parsing/enrichment runs via Supabase Edge Functions (Claude Haiku)
 - 🟢 6.4 — EAS build config: `autoIncrement` on, auto-submit to TestFlight
 

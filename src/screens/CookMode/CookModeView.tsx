@@ -10,7 +10,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActionSheetIOS, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from '../../components/Button';
+import { Button, type ButtonProps } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { IngredientChip } from '../../components/IngredientChip';
 import { SectionLabel } from '../../components/SectionLabel';
@@ -36,6 +36,10 @@ type RecipeStep = RecipeDetail['steps'][number];
 type CookTheme = {
   background: string;
   statusBarStyle: 'light' | 'dark';
+  // Primary CTA fill must contrast with `background`: `cookPrimary` is a Cream
+  // fill (for Pine), `primary` is a Terracotta fill (for Cream). Picking per
+  // theme keeps the button from rendering background-on-background.
+  primaryButtonVariant: ButtonProps['variant'];
   overflowTint: ColorToken;
   stepNumberColor: ColorToken;
   sectionLabelColor: ColorToken;
@@ -54,6 +58,8 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
   dark: {
     background: colors.pine,
     statusBarStyle: 'light',
+    // Cream fill / Pine text — Terracotta fails contrast on Pine (2.22:1).
+    primaryButtonVariant: 'cookPrimary',
     overflowTint: 'cream',
     stepNumberColor: 'creamMuted',
     // Oat reads clearly on Pine; Olive Dark would be dark-on-dark.
@@ -69,6 +75,9 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
   light: {
     background: colors.cream,
     statusBarStyle: 'dark',
+    // Terracotta fill — the app-wide primary CTA. `cookPrimary` here would be a
+    // Cream fill on a Cream background, i.e. an invisible button.
+    primaryButtonVariant: 'primary',
     overflowTint: 'oliveDark',
     // Terracotta passes AA on Cream (6.97:1) and anchors the step as brand accent.
     stepNumberColor: 'terracotta',
@@ -440,7 +449,7 @@ export function CookModeView({
           </View>
           <View style={styles.navBtn}>
             <Button
-              variant="cookPrimary"
+              variant={tc.primaryButtonVariant}
               label={isLastStep ? 'Finish Cooking →' : 'Next Step →'}
               onPress={handleNext}
             />
