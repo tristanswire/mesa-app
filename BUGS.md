@@ -28,7 +28,7 @@ Also: `WONTFIX` (with a reason) and `CANT-REPRO`.
 
 | ID | Sev | Area | Summary | Repro / Trigger | Suspected cause | Criterion | Status |
 |----|-----|------|---------|-----------------|-----------------|-----------|--------|
-| MESA-002 | S2 | Nav | Component Showcase (dev gallery) reachable in shipping build | Profile → tap "Component Showcase" | Debug link not gated behind `__DEV__` (`ProfileScreen.tsx:227`) | — | OPEN |
+| MESA-013 | S1 | Profile | No privacy policy link in-app — App Store submission requirement | n/a — missing UI | privacy-policy link never added | 7.3 | OPEN |
 | MESA-011 | S3 | Home | Greeting recomputes `new Date()` on every render (won't tick over without a re-render) | n/a — cosmetic | inline `getTimeGreeting()` per render (`HomeScreen.tsx`) | — | OPEN |
 | MESA-003 | S2 | Home | Hero "Last Cooked" also shows as the first "In your Bank" card (duplicate) | Home with ≥1 cooked recipe | hero `all[0]` + bank `slice(0,2)` overlap; hero wasn't from cook history | 3.1 | IN PROGRESS (R1 — verify) |
 | MESA-004 | S3 | Home | "Worth a try" row implied discovery but showed the user's own library | Home with ≥3 recipes | mislabeled own-library slice; relabeled "More from your bank" | 3.1 | IN PROGRESS (R1 — verify) |
@@ -39,8 +39,9 @@ Also: `WONTFIX` (with a reason) and `CANT-REPRO`.
 | MESA-009 | S2 | Theme | Terracotta primary CTA on Pine surface (2.22:1 fail) | Cook Mode Next/Finish btn; PostCook Save btn | global `primary` variant (Terracotta) on a Pine bg | 2.4.1 | IN PROGRESS (R2 — `cookPrimary` variant — verify) |
 | MESA-010 | S3 | CookMode | Light-mode step number rendered in Clay (fails AA) | Cook Mode in light appearance | `stepNumberColor: 'clay'` in light theme | 3.12 | IN PROGRESS (R2 — Terracotta — verify) |
 
+> **MESA-013** is a launch-blocking gate (not app-side feature work) — it blocks App Store submission and must clear before external beta. (MESA-012, the other gate, is resolved — see the Resolved Log.)
 > **Criterion** = the ACCEPTANCE_CRITERIA.md ID if the bug maps to one, else `—`.
-> Still-MISSING features (not bugs, tracked in ACCEPTANCE_CRITERIA, not duplicated here): library search is title-only (3.2); Photo/Manual import (3.3) — deferred to a later round; `verify_jwt=false` not yet reverted (7.1) — see watch list; footer privacy-policy link absent (7.3).
+> Still-MISSING features (not bugs, tracked in ACCEPTANCE_CRITERIA, not duplicated here): library search is title-only (3.2); Photo/Manual import (3.3) — deferred to a later round; footer privacy-policy link absent (7.3).
 
 ---
 
@@ -75,7 +76,7 @@ Not bugs yet, but the spots most likely to break based on the build history and 
 - **Import → Edge Function path** — Claude Haiku parse. Fails silently if Supabase is paused (free tier) or the page is unparseable. Check error states, not just happy path.
 - **Supabase auto-pause** — free tier pauses ~7 days idle; silently breaks image loads + imports. If "images won't load" appears, check project status FIRST before chasing a code bug.
 - **Theme drift** — retired tokens (`#A85D3B`, `#b34519`, `#fffbf4`, Plus Jakarta Sans, DM Sans) sneaking back in via copy-paste.
-- **`verify_jwt = false`** — temporary unblock. Reverting to legacy keys may surface auth errors in the import/edge path that were masked.
+- **`verify_jwt = true`** (re-enabled, MESA-012) — the import path now depends on the client shipping the **legacy JWT anon key** (`eyJ...`). If a build is ever cut with a publishable key (`sb_publishable_*`), the gateway rejects it as `UNAUTHORIZED_INVALID_JWT_FORMAT` and imports break with no app-side code change. Check `EXPO_PUBLIC_SUPABASE_ANON_KEY` in the EAS env first if imports start 401ing.
 
 ---
 
@@ -85,4 +86,6 @@ Move fixed rows here. Keep newest at top.
 
 | ID | Sev | Area | Summary | Fixed in build | Fix note |
 |----|-----|------|---------|----------------|----------|
+| MESA-012 | S1 | Backend | `verify_jwt = false` in `supabase/config.toml` — must revert to legacy JWT keys before external beta | Build 8 | Root cause was the client env, not the function: EAS production carried a publishable key (`sb_publishable_*`) the gateway rejects as `UNAUTHORIZED_INVALID_JWT_FORMAT`. With the legacy JWT anon key (`eyJ...`) restored and baked into Build 8, set `verify_jwt = true` (`supabase/config.toml`) and redeployed `import-recipe`. Verified: `curl` with **no** auth header → `401 UNAUTHORIZED_NO_AUTH_HEADER`; same call with the anon key → `200`; live import from Build 8 on TestFlight succeeds. Client path audited unchanged — `supabase.functions.invoke` attaches `Authorization` automatically. Anthropic API cost exposure re-gated. |
+| MESA-002 | S2 | Nav | Component Showcase (dev gallery) reachable in shipping build | Build 8 | Gated the Profile entry point behind `__DEV__` so it renders in dev builds only. Route left registered in `MainNavigator` (unreachable with no entry point and no deep link). `tsc` clean. **Verified on the Build 8 release/TestFlight build — the Showcase link is absent.** |
 | MESA-001 | S2 | Build | Watch-list claimed a "Round 3a-anim" added Reanimated for a swipe **slide** transition + a "Babel plugin must stay LAST" requirement — none of that exists | doc (this edit) | Verified: no `react-native-reanimated` in `package.json`, `node_modules`, or `babel.config.js`; no such commit. Round 3a swipe is gesture-handler-only with an **instant** (not slide) transition. Corrected the watch-list entry. Risk if left: someone "restores" a Reanimated Babel plugin with no Reanimated installed → broken build (would've been S1), or wastes time chasing a slide-transition bug that can't exist. |

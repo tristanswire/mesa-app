@@ -380,16 +380,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
-# TODO(phase-3.23): Re-enable JWT verification once the app is migrated from the
-# new publishable key (sb_publishable_*) back to the legacy JWT anon key on the
-# Supabase project. The gateway's JWT check rejects publishable keys as
-# UNAUTHORIZED_INVALID_JWT_FORMAT, which broke the import flow on build 5.
-# Disabling verify_jwt here unblocks publishable-key clients; the function is
-# already callable by anyone with the URL (it's in the app bundle), so the
-# practical security delta is small — but cost exposure on the Anthropic API is
-# real and should be re-gated when keys are flipped.
+# JWT verification is on: the client ships the legacy JWT anon key (eyJ...), which
+# the gateway accepts. It was briefly disabled in phase-3.23 because the app was
+# built with a publishable key (sb_publishable_*) that the gateway rejects as
+# UNAUTHORIZED_INVALID_JWT_FORMAT — fixed as of build 8. Keep this true so the
+# Anthropic API cost exposure stays gated behind a valid key.
 [functions.import-recipe]
-verify_jwt = false
+verify_jwt = true
 
 [analytics]
 enabled = true
