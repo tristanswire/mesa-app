@@ -6,32 +6,30 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { MoreVertical, Sun } from 'lucide-react-native';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActionSheetIOS, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { ActionSheetIOS, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, type ButtonProps } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
-import { IngredientChip } from '../../components/IngredientChip';
 import { SectionLabel } from '../../components/SectionLabel';
-import { Text } from '../../components/Text';
-import { TimerToken } from '../../components/TimerToken';
+import { CookStepPane, type PaneTheme } from './CookStepPane';
 import { completeCook } from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
 import { getUserPreferences } from '../../data/preferences';
-import type { RecipeDetail } from '../../data/recipes';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ColorToken } from '../../theme';
 import { colors, spacing } from '../../theme';
-import {
-  COOK_TEXT_MAX_FONT_MULTIPLIER,
-  COOK_TEXT_SCALE,
-  COOK_TEXT_SIZE_LABELS,
-  type CookTextSize,
-} from './textSize';
+import { COOK_TEXT_SCALE, COOK_TEXT_SIZE_LABELS, type CookTextSize } from './textSize';
 import { useTimerManager } from './useTimerManager';
-
-type RecipeStep = RecipeDetail['steps'][number];
 
 type CookTheme = {
   background: string;
@@ -93,19 +91,20 @@ const THEMES: Record<'dark' | 'light', CookTheme> = {
 };
 
 // Swipe must be deliberate: commit on either enough horizontal travel OR a
-// fast flick in the same direction. Tuned to ignore small accidental drags.
-const SWIPE_COMMIT_DISTANCE = 56;
+// fast flick in the same direction. Distance is a fraction of screen width so
+// the feel is consistent across device sizes; velocity catches quick flicks
+// that never travel far.
+const SWIPE_COMMIT_FRACTION = 0.3;
 const SWIPE_COMMIT_VELOCITY = 500;
 
-function stepToPlainText(step: RecipeStep): string {
-  return step.segments.map((seg) => {
-    if (seg.type === 'text') return seg.content;
-    if (seg.type === 'ingredient') {
-      return step.ingredients.find((x) => x.id === seg.ingredientId)?.display ?? '';
-    }
-    return step.timers.find((x) => x.id === seg.timerId)?.label ?? '';
-  }).join('');
-}
+/** Slide duration on commit. Fast enough not to delay a cook mid-task. */
+const SLIDE_DURATION_MS = 280;
+
+/**
+ * Drag past the first/last step is damped rather than blocked outright, so the
+ * edge reads as "nothing there" instead of a frozen screen.
+ */
+const EDGE_RESISTANCE = 0.25;
 
 export type CookModeTheme = 'dark' | 'light';
 
@@ -167,16 +166,59 @@ export function CookModeView({
   }, [theme, onToggleTheme, navigation, textSize, onSetTextSize]);
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
+  const { width: screenWidth } = useWindowDimensions();
 
-  // Swipe navigation. Built once (deps []) and reads the latest handlers + step
-  // bounds from a ref, so it never goes stale as steps change and the hook order
-  // stays stable across the loading early-return below.
-  const swipeNavRef = useRef<{
-    next: () => void;
-    prev: () => void;
-    isFirstStep: boolean;
-    isLastStep: boolean;
-  }>({ next: () => {}, prev: () => {}, isFirstStep: true, isLastStep: true });
+  // Horizontal offset of the 3-pane row. 0 = current step centered; -width =
+  // next step centered; +width = previous step centered.
+  const translateX = useSharedValue(0);
+
+  // Gesture worklets run on the UI thread and can't read React state, so the
+  // bounds they need are mirrored into shared values.
+  const stepIndexSV = useSharedValue(initialStepIndex);
+  const lastIndexSV = useSharedValue(0);
+  const widthSV = useSharedValue(screenWidth);
+
+  useEffect(() => {
+    widthSV.value = screenWidth;
+  }, [screenWidth, widthSV]);
+
+  useEffect(() => {
+    stepIndexSV.value = stepIndex;
+  }, [stepIndex, stepIndexSV]);
+
+  /**
+   * Reset the row offset *after* the step index changes, not inside the
+   * animation callback. When the slide finishes, the row sits at ∓width with
+   * the incoming pane visually centered; once stepIndex updates, that pane is
+   * re-rendered at offset 0, so setting translateX back to 0 here is a no-op
+   * visually. Resetting earlier would flash the outgoing step for one frame.
+   */
+  useLayoutEffect(() => {
+    translateX.value = 0;
+  }, [stepIndex, translateX]);
+
+  const goToStep = useCallback((delta: 1 | -1) => {
+    setStepIndex((i) => i + delta);
+  }, []);
+
+  /**
+   * Animate the row one step in `direction`, then commit the index change.
+   * Shared by the gesture and the Previous/Next buttons so both produce the
+   * identical transition.
+   */
+  const slideTo = useCallback(
+    (direction: 1 | -1) => {
+      'worklet';
+      translateX.value = withTiming(
+        -direction * widthSV.value,
+        { duration: SLIDE_DURATION_MS, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) runOnJS(goToStep)(direction);
+        },
+      );
+    },
+    [translateX, widthSV, goToStep],
+  );
 
   const swipeGesture = useMemo(
     () =>
@@ -187,21 +229,42 @@ export function CookModeView({
         // timer chip is never captured — the chip's Pressable still fires.
         .activeOffsetX([-16, 16])
         .failOffsetY([-12, 12])
+        .onUpdate((e) => {
+          const atFirst = stepIndexSV.value === 0;
+          const atLast = stepIndexSV.value === lastIndexSV.value;
+          const dx = e.translationX;
+          // Damp drags that would move past either end — there is no pane to
+          // reveal, so the row rubber-bands instead of tracking the finger.
+          const pastEdge = (dx > 0 && atFirst) || (dx < 0 && atLast);
+          translateX.value = pastEdge ? dx * EDGE_RESISTANCE : dx;
+        })
         .onEnd((e) => {
-          const { next, prev, isFirstStep, isLastStep } = swipeNavRef.current;
+          const atFirst = stepIndexSV.value === 0;
+          const atLast = stepIndexSV.value === lastIndexSV.value;
           const dx = e.translationX;
           const vx = e.velocityX;
-          const swipedLeft =
-            dx <= -SWIPE_COMMIT_DISTANCE || (dx < 0 && vx <= -SWIPE_COMMIT_VELOCITY);
-          const swipedRight =
-            dx >= SWIPE_COMMIT_DISTANCE || (dx > 0 && vx >= SWIPE_COMMIT_VELOCITY);
+          const commitDistance = widthSV.value * SWIPE_COMMIT_FRACTION;
+
+          const swipedLeft = dx <= -commitDistance || (dx < 0 && vx <= -SWIPE_COMMIT_VELOCITY);
+          const swipedRight = dx >= commitDistance || (dx > 0 && vx >= SWIPE_COMMIT_VELOCITY);
+
           // Boundaries: never past the last step (finishing the cook stays a
           // deliberate button tap, not an over-swipe) and never before step 1.
-          if (swipedLeft && !isLastStep) next();
-          else if (swipedRight && !isFirstStep) prev();
+          if (swipedLeft && !atLast) {
+            slideTo(1);
+          } else if (swipedRight && !atFirst) {
+            slideTo(-1);
+          } else {
+            // Not committed (or blocked at an edge) — settle back to center.
+            translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+          }
         }),
-    [],
+    [stepIndexSV, lastIndexSV, widthSV, translateX, slideTo],
   );
+
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   if (loading || !recipe) {
     return <View style={[styles.root, { backgroundColor: tc.background }]} />;
@@ -252,29 +315,44 @@ export function CookModeView({
         });
       }
     } else {
-      setStepIndex((i) => i + 1);
+      // Same transition the gesture produces, so buttons and swipe read as one
+      // system rather than two ways of changing the step.
+      slideTo(1);
     }
   };
 
   const handlePrev = () => {
     if (isFirstStep) return;
     void Haptics.impactAsync(ImpactFeedbackStyle.Light);
-    setStepIndex((i) => i - 1);
+    slideTo(-1);
   };
 
-  // Point the swipe gesture at the current step's handlers + bounds. handleNext
-  // is only reachable via swipe when !isLastStep, so swipe never triggers the
-  // finish-cook navigation — that stays the explicit button.
-  swipeNavRef.current = {
-    next: handleNext,
-    prev: handlePrev,
-    isFirstStep,
-    isLastStep,
-  };
+  // Mirror the step bounds for the gesture worklets. Assigned during render so
+  // they track `steps` without an extra effect; both are plain numbers.
+  lastIndexSV.value = steps.length - 1;
 
   // Cook Mode step-text scale (M/L/XL). Applies to the instruction text only —
   // the step number and ingredient/timer chips keep their own sizes.
   const textScale = COOK_TEXT_SCALE[textSize];
+
+  // The pane-facing slice of the active theme. Identical values to before the
+  // carousel refactor — light and dark are unchanged by the animation work.
+  const paneTheme: PaneTheme = {
+    stepNumberColor: tc.stepNumberColor,
+    sectionLabelColor: tc.sectionLabelColor,
+    bodyTextColor: tc.bodyTextColor,
+    nextPreviewColor: tc.nextPreviewColor,
+    divider: tc.divider,
+    chipTheme: tc.chipTheme,
+  };
+
+  // Timer taps cycle idle -> running -> cancel, and dismiss once completed.
+  const handleTimerPress = (timerId: string, label: string, durationSeconds: number) => {
+    const status = timers[timerId]?.status ?? 'idle';
+    if (status === 'idle') startTimer(timerId, label, durationSeconds);
+    else if (status === 'running') cancelTimer(timerId);
+    else dismissCompletedTimer(timerId);
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: tc.background }]}>
@@ -298,113 +376,48 @@ export function CookModeView({
       </View>
 
       {/* ── Content ──────────────────────────────────────────────────── */}
-      {/* ScrollView lets long step text scroll without overlapping the nav
-          bar. contentContainerStyle adds bottom padding so the last line
-          can clear the fade gradient when fully scrolled. */}
+      {/* A 3-pane row (previous / current / next) that slides horizontally.
+          Each pane owns its vertical ScrollView so long step text still
+          scrolls; the gesture's failOffsetY yields to that scroll. */}
       <View style={styles.contentWrap}>
-        {/* Horizontal swipe navigates steps; the inner ScrollView keeps vertical
-            scrolling for long step text (the gesture's failOffsetY yields to it). */}
         <GestureDetector gesture={swipeGesture}>
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={styles.contentScrollInner}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Step number */}
-          <Text role="cookModeStepNumber" color={tc.stepNumberColor} align="right">
-            {String(stepIndex + 1).padStart(2, '0')}
-          </Text>
-
-          <View style={{ height: spacing.lg }} />
-
-          {/* Step body — flex-wrap layout. RN's inline-Pressable-in-Text
-              rendering is unreliable (the timer pill anchors to the text
-              baseline and forces its line taller, breaking the flow above
-              it). Splitting each text segment into per-word <Text> items
-              lets words wrap individually inside a flex row, and the pill
-              becomes an ordinary flex item that aligns naturally on its
-              line. cookModeBody lineHeight is 30; TimerToken is sized to
-              30 so rows containing a pill match rows of plain text. */}
-          <View style={[styles.stepBody, { columnGap: textScale.columnGap }]}>
-            {currentStep.segments.flatMap((seg, segIdx) => {
-              if (seg.type === 'text') {
-                return seg.content
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .map((word, wIdx) => (
-                    <Text
-                      key={`text-${segIdx}-${wIdx}`}
-                      role="cookModeBody"
-                      color={tc.bodyTextColor}
-                      style={{ fontSize: textScale.fontSize, lineHeight: textScale.lineHeight }}
-                      maxFontSizeMultiplier={COOK_TEXT_MAX_FONT_MULTIPLIER}
-                    >
-                      {word}
-                    </Text>
-                  ));
+          <Animated.View style={[styles.paneRow, rowStyle]}>
+            {[-1, 0, 1].map((offset) => {
+              const paneIndex = stepIndex + offset;
+              const paneStep = steps[paneIndex];
+              // Edges have no neighbor to render — the gap is never visible
+              // because the row can't travel past it (see EDGE_RESISTANCE).
+              if (!paneStep) {
+                return (
+                  <View
+                    key={`pane-empty-${offset}`}
+                    style={[styles.pane, { width: screenWidth, left: offset * screenWidth }]}
+                  />
+                );
               }
-              if (seg.type === 'ingredient') {
-                const ing = currentStep.ingredients.find((x) => x.id === seg.ingredientId);
-                return [
-                  <IngredientChip
-                    key={`ing-${segIdx}`}
-                    label={ing?.display ?? ''}
-                    theme={tc.chipTheme}
-                  />,
-                ];
-              }
-              const timer = currentStep.timers.find((x) => x.id === seg.timerId);
-              if (!timer) return [];
-              const state = timers[timer.id];
-              const status = state?.status ?? 'idle';
-              const remaining = state?.remainingSeconds ?? 0;
-              return [
-                <TimerToken
-                  key={`timer-${segIdx}`}
-                  label={timer.label}
-                  status={status}
-                  remainingSeconds={remaining}
-                  theme={tc.chipTheme}
-                  onPress={() => {
-                    if (status === 'idle') {
-                      startTimer(timer.id, timer.label, timer.durationSeconds);
-                    } else if (status === 'running') {
-                      cancelTimer(timer.id);
-                    } else {
-                      dismissCompletedTimer(timer.id);
-                    }
-                  }}
-                />,
-              ];
+              return (
+                <View
+                  key={`pane-${paneIndex}`}
+                  style={[styles.pane, { width: screenWidth, left: offset * screenWidth }]}
+                  // Only the centered pane is exposed to assistive tech, so a
+                  // screen reader never reads the neighboring steps.
+                  accessibilityElementsHidden={offset !== 0}
+                  importantForAccessibility={offset === 0 ? 'auto' : 'no-hide-descendants'}
+                  pointerEvents={offset === 0 ? 'auto' : 'none'}
+                >
+                  <CookStepPane
+                    step={paneStep}
+                    stepIndex={paneIndex}
+                    nextStep={steps[paneIndex + 1]}
+                    theme={paneTheme}
+                    textScale={textScale}
+                    timers={timers}
+                    onTimerPress={handleTimerPress}
+                  />
+                </View>
+              );
             })}
-          </View>
-
-          <View style={{ height: spacing.xl }} />
-
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: tc.divider }]} />
-
-          <View style={{ height: spacing.lg }} />
-
-          {/* NEXT preview */}
-          {nextStep ? (
-            <>
-              <SectionLabel color={tc.sectionLabelColor}>NEXT</SectionLabel>
-              <View style={{ height: spacing.sm }} />
-              <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
-                {stepToPlainText(nextStep)}
-              </Text>
-            </>
-          ) : (
-            <>
-              <SectionLabel color={tc.sectionLabelColor}>ALMOST THERE</SectionLabel>
-              <View style={{ height: spacing.sm }} />
-              <Text role="cookModeBody" color={tc.nextPreviewColor} numberOfLines={2}>
-                Last step — you're almost done.
-              </Text>
-            </>
-          )}
-        </ScrollView>
+          </Animated.View>
         </GestureDetector>
 
         {/* Bottom fade — hints at scroll overflow. transparent -> background
@@ -482,14 +495,15 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  contentScroll: {
+  // The sliding row fills contentWrap; panes are absolutely positioned within
+  // it at -1/0/+1 screen widths so only the transform animates.
+  paneRow: {
     flex: 1,
   },
-  contentScrollInner: {
-    paddingHorizontal: spacing.lg,
-    // Bottom padding so the last line scrolls past the fade gradient
-    // (FADE_HEIGHT) before hitting the nav bar.
-    paddingBottom: 32,
+  pane: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
   },
   fade: {
     position: 'absolute',
@@ -497,20 +511,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 24,
-  },
-  stepBody: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    // columnGap approximates a single space at the 20pt body font.
-    // rowGap stays 0 — each word/chip flex item already provides its own
-    // lineHeight (30pt), so wrapped rows have the same vertical rhythm
-    // as the prior single-Text rendering.
-    columnGap: 5,
-    rowGap: 0,
-  },
-  divider: {
-    height: 1,
   },
   // ── Bottom bar ──────────────────────────────────────────────────────
   bottomBar: {
