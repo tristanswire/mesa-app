@@ -1,10 +1,28 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32.0';
-import type { ParsedRecipe } from './types.ts';
-import { FULL_PARSE_PROMPT } from './prompts.ts';
+import type { ParsedRecipe, VisionMediaType } from './types.ts';
+import { FULL_PARSE_PROMPT, PHOTO_PARSE_PROMPT, TEXT_PARSE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
 import { stripParentheticals } from './text.ts';
 
 const PARSE_FAILED = 'Could not parse the recipe from this page.';
+const PHOTO_PARSE_FAILED = "We couldn't read that photo. Try a clearer shot.";
+const TEXT_PARSE_FAILED = "We couldn't read that recipe. Check the text and try again.";
+
+/** Freeform text is capped before it reaches the model. */
+export const MAX_TEXT_CHARS = 20_000;
+
+/**
+ * A user message body. The URL and text paths send a single text block; the
+ * photo path prepends an image block (image first reads more reliably than
+ * instructions-first for vision).
+ */
+type MessageContent = Array<
+  | { type: 'text'; text: string }
+  | {
+      type: 'image';
+      source: { type: 'base64'; media_type: VisionMediaType; data: string };
+    }
+>;
 
 type Attempt =
   /** A recipe that passed shape validation. */
@@ -16,6 +34,32 @@ type Attempt =
   /** Valid JSON, but not a usable recipe — worth one retry. */
   | { kind: 'invalid' };
 
+/**
+ * One retry, but only for a response that parsed as JSON yet wasn't a usable
+ * recipe — the model occasionally returns a partial object on good input.
+ *
+ * Shared by all three input modes so retry semantics, validation, and
+ * ingredient cleanup can't drift between them.
+ */
+async function parseWithRetry(
+  content: MessageContent,
+  anthropic: Anthropic,
+  label: string,
+  parseFailed: string,
+): Promise<ParsedRecipe | { error: string }> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const result = await runParse(content, anthropic, label);
+
+    if (result.kind === 'recipe') return result.recipe;
+    if (result.kind === 'modelError') return { error: result.error };
+    if (result.kind === 'unparseable') return { error: parseFailed };
+
+    console.error(`[import-recipe] ${label}: attempt ${attempt} failed validation`);
+  }
+
+  return { error: parseFailed };
+}
+
 export async function parseWithAI(
   html: string,
   anthropic: Anthropic,
@@ -23,19 +67,51 @@ export async function parseWithAI(
   const cleaned = stripNoise(html);
   const truncated = cleaned.slice(0, 80000);
 
-  // One retry, but only for a response that parsed as JSON yet wasn't a usable
-  // recipe — the model occasionally returns a partial object on a good page.
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const result = await runParse(truncated, anthropic);
+  return parseWithRetry(
+    [{ type: 'text', text: `${FULL_PARSE_PROMPT}\n\nHTML:\n${truncated}` }],
+    anthropic,
+    'full-parse',
+    PARSE_FAILED,
+  );
+}
 
-    if (result.kind === 'recipe') return result.recipe;
-    if (result.kind === 'modelError') return { error: result.error };
-    if (result.kind === 'unparseable') return { error: PARSE_FAILED };
+/**
+ * Photo import. The user's photo is used for parsing only — it is never
+ * uploaded to storage, so the returned recipe always has imageUrl: null.
+ */
+export async function parseImageWithAI(
+  imageBase64: string,
+  mediaType: VisionMediaType,
+  anthropic: Anthropic,
+): Promise<ParsedRecipe | { error: string }> {
+  const result = await parseWithRetry(
+    [
+      { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+      { type: 'text', text: PHOTO_PARSE_PROMPT },
+    ],
+    anthropic,
+    'photo-parse',
+    PHOTO_PARSE_FAILED,
+  );
 
-    console.error(`[import-recipe] full-parse: attempt ${attempt} failed validation`);
-  }
+  return 'error' in result ? result : { ...result, imageUrl: null };
+}
 
-  return { error: PARSE_FAILED };
+/** Manual/freeform text import. No source image, so imageUrl is always null. */
+export async function parseTextWithAI(
+  text: string,
+  anthropic: Anthropic,
+): Promise<ParsedRecipe | { error: string }> {
+  const truncated = text.slice(0, MAX_TEXT_CHARS);
+
+  const result = await parseWithRetry(
+    [{ type: 'text', text: `${TEXT_PARSE_PROMPT}\n\nRECIPE TEXT:\n${truncated}` }],
+    anthropic,
+    'text-parse',
+    TEXT_PARSE_FAILED,
+  );
+
+  return 'error' in result ? result : { ...result, imageUrl: null };
 }
 
 function isValidRecipe(parsed: unknown): parsed is ParsedRecipe {
@@ -51,17 +127,16 @@ function isValidRecipe(parsed: unknown): parsed is ParsedRecipe {
   );
 }
 
-async function runParse(truncated: string, anthropic: Anthropic): Promise<Attempt> {
+async function runParse(
+  content: MessageContent,
+  anthropic: Anthropic,
+  label: string,
+): Promise<Attempt> {
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5',
     max_tokens: 3000,
     temperature: 0,
-    messages: [
-      {
-        role: 'user',
-        content: `${FULL_PARSE_PROMPT}\n\nHTML:\n${truncated}`,
-      },
-    ],
+    messages: [{ role: 'user', content }],
   });
 
   const inputTokens = message.usage?.input_tokens ?? 0;
@@ -70,14 +145,14 @@ async function runParse(truncated: string, anthropic: Anthropic): Promise<Attemp
   const outputCost = (outputTokens / 1_000_000) * 5.0;
   const totalCost = inputCost + outputCost;
   console.log(
-    `[import-recipe] full-parse tokens: ${inputTokens} in / ${outputTokens} out · ` +
+    `[import-recipe] ${label} tokens: ${inputTokens} in / ${outputTokens} out · ` +
       `cost: $${totalCost.toFixed(4)}`,
   );
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
   const extracted = extractJson(text);
   if (!extracted) {
-    console.error('[import-recipe] full-parse: could not extract JSON. Raw:', text.slice(0, 2000));
+    console.error(`[import-recipe] ${label}: could not extract JSON. Raw:`, text.slice(0, 2000));
     return { kind: 'unparseable' };
   }
 
@@ -85,7 +160,7 @@ async function runParse(truncated: string, anthropic: Anthropic): Promise<Attemp
   try {
     parsed = JSON.parse(extracted);
   } catch (e) {
-    console.error('[import-recipe] full-parse: JSON.parse failed.', e);
+    console.error(`[import-recipe] ${label}: JSON.parse failed.`, e);
     return { kind: 'unparseable' };
   }
 
