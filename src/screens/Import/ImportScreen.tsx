@@ -2,17 +2,30 @@ import { CommonActions, useNavigation, useRoute } from '@react-navigation/native
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { ChevronLeft, Link, X } from 'lucide-react-native';
+import { Camera, ChevronLeft, Link, Pencil, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { ClipboardBanner } from '../../components/ClipboardBanner';
 import { IconButton } from '../../components/IconButton';
 import { Input } from '../../components/Input';
 import { Text } from '../../components/Text';
-import { importRecipeFromUrl } from '../../data/import';
+import {
+  importRecipeFromPhoto,
+  importRecipeFromUrl,
+  type ImportResult,
+} from '../../data/import';
 import { useClipboardUrl } from '../../hooks/useClipboardUrl';
+import { captureRecipePhoto, type PhotoSource } from '../../lib/photoImport';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -33,17 +46,24 @@ export function ImportScreen() {
   }, [prefilledUrl]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+  // The hint under an error is mode-specific — "Try a different link" is wrong
+  // advice for a photo that came back unreadable.
+  const [importError, setImportError] = useState<{ message: string; hint: string } | null>(null);
 
   const { url: clipboardUrl, loaded: clipboardLoaded } = useClipboardUrl();
   const showBanner =
     clipboardLoaded && !!clipboardUrl && !bannerDismissed && !isImporting && !importError;
 
-  const handleImport = async (urlToImport: string) => {
-    if (!urlToImport.trim() || isImporting) return;
+  /**
+   * Shared landing for every import mode: same loading state, same error
+   * surface, same navigation reset, so a photo import is indistinguishable
+   * from a URL import once the request is in flight.
+   */
+  const runImport = async (importer: () => Promise<ImportResult>, errorHint: string) => {
+    if (isImporting) return;
     setIsImporting(true);
     setImportError(null);
-    const result = await importRecipeFromUrl(urlToImport.trim());
+    const result = await importer();
     setIsImporting(false);
     if (result.success) {
       navigation.dispatch(
@@ -56,8 +76,57 @@ export function ImportScreen() {
         })
       );
     } else {
-      setImportError(result.error);
+      setImportError({ message: result.error, hint: errorHint });
     }
+  };
+
+  const handleImport = (urlToImport: string) => {
+    if (!urlToImport.trim()) return;
+    return runImport(() => importRecipeFromUrl(urlToImport.trim()), 'Try a different link.');
+  };
+
+  /**
+   * Capture happens before the loading overlay goes up — the picker and the
+   * permission prompt are their own modal UI, and a spinner behind them would
+   * be both invisible and wrong if the user cancels.
+   */
+  const handlePhoto = async (source: PhotoSource) => {
+    if (isImporting) return;
+    const photo = await captureRecipePhoto(source);
+
+    if (photo.status === 'cancelled') return;
+    if (photo.status === 'error') {
+      setImportError({ message: photo.message, hint: 'Try a clearer, well-lit shot.' });
+      return;
+    }
+
+    await runImport(
+      () => importRecipeFromPhoto(photo.base64),
+      'Try a clearer, well-lit shot.',
+    );
+  };
+
+  const showPhotoOptions = () => {
+    if (isImporting) return;
+    // iOS-only app (see app.json), so the native sheet is the right affordance.
+    // Guarded anyway so a future Android target degrades to the library picker
+    // rather than silently doing nothing.
+    if (Platform.OS !== 'ios') {
+      void handlePhoto('library');
+      return;
+    }
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Take Photo', 'Choose from Library'],
+        cancelButtonIndex: 0,
+        title: 'Import from a photo',
+        message: 'Photograph a cookbook page or recipe card.',
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) void handlePhoto('camera');
+        else if (buttonIndex === 2) void handlePhoto('library');
+      },
+    );
   };
 
   return (
@@ -128,9 +197,9 @@ export function ImportScreen() {
             <View style={[styles.paddingH, { marginTop: spacing.md }]}>
               <View style={styles.errorSheet}>
                 <View style={styles.errorTextStack}>
-                  <Text role="body" style={styles.errorTitle}>{importError}</Text>
+                  <Text role="body" style={styles.errorTitle}>{importError.message}</Text>
                   <Text role="caption" color="oliveDark" style={{ marginTop: spacing.xs }}>
-                    Try a different link.
+                    {importError.hint}
                   </Text>
                 </View>
                 <Pressable
@@ -145,6 +214,34 @@ export function ImportScreen() {
               </View>
             </View>
           )}
+
+          {/* ── OR divider ───────────────────────────────────────────── */}
+          <View style={[styles.paddingH, styles.dividerRow, { marginTop: spacing.xl }]}>
+            <View style={styles.dividerLine} />
+            <Text role="caption" color="oliveDark" style={styles.dividerLabel}>
+              OR
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* ── Photo + manual entry ─────────────────────────────────── */}
+          <View style={[styles.paddingH, { marginTop: spacing.lg }]}>
+            <Button
+              variant="secondary"
+              icon={Camera}
+              label="Take a Photo"
+              onPress={showPhotoOptions}
+              disabled={isImporting}
+            />
+            <View style={{ height: spacing.md }} />
+            <Button
+              variant="secondary"
+              icon={Pencil}
+              label="Enter Manually"
+              onPress={() => navigation.navigate('ManualImport')}
+              disabled={isImporting}
+            />
+          </View>
 
           {/* ── Supported sites footer ───────────────────────────────── */}
           <View style={{ height: spacing.xxl }} />
@@ -195,6 +292,19 @@ const styles = StyleSheet.create({
   },
   subheadline: {
     paddingHorizontal: spacing.lg,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.oat,
+  },
+  dividerLabel: {
+    letterSpacing: 0.5,
   },
   errorSheet: {
     flexDirection: 'row',

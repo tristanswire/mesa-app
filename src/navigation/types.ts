@@ -14,6 +14,7 @@ export type MainStackParamList = {
   CookMode: { recipeId: string; stepIndex?: number };
   PostCook: { recipeId: string; cookId: string };
   Import: { prefilledUrl?: string } | undefined;
+  ManualImport: undefined;
   Showcase: undefined;
   CookingFrequency: undefined;
   DietaryPreferences: undefined;

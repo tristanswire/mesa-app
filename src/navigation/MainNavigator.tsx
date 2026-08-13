@@ -6,6 +6,7 @@ import {
   DefaultServingSizeScreen,
   DietaryPreferencesScreen,
   ImportScreen,
+  ManualImportScreen,
   PostCookScreen,
   PrepModeScreen,
   RecipeDetailScreen,
@@ -42,6 +43,8 @@ export function MainNavigator() {
         component={ImportScreen}
         options={{ presentation: 'modal' }}
       />
+      {/* Pushed on top of the Import modal, so Back returns to the mode picker */}
+      <Stack.Screen name="ManualImport" component={ManualImportScreen} />
     </Stack.Navigator>
   );
 }

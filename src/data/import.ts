@@ -11,10 +11,31 @@ export type ImportResult =
   | { success: true; recipeId: string }
   | { success: false; error: string };
 
-export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
+/**
+ * The three input modes the Edge Function accepts. Exactly one per request —
+ * the server rejects zero or multiple modes rather than guessing.
+ */
+type ImportPayload =
+  | { url: string }
+  | { imageBase64: string; mediaType: 'image/jpeg' }
+  | { text: string };
+
+/** Freeform text cap, mirroring the Edge Function's own limit. */
+export const MAX_MANUAL_TEXT_CHARS = 20_000;
+
+/**
+ * Single invoke + response path shared by all three modes. Only the request
+ * body and the stored `sourceUrl` differ; parsing, error mapping, and the local
+ * DB write are identical, so a fix in one mode is a fix in all three.
+ *
+ * `sourceUrl` is null for photo and manual imports — there is no originating
+ * page. Those recipes also come back with `imageUrl: null`, which the recipe
+ * card and detail views already render via the existing tinted placeholder.
+ */
+async function runImport(payload: ImportPayload, sourceUrl: string | null): Promise<ImportResult> {
   try {
     const { data, error } = await supabase.functions.invoke<ImportResponse>('import-recipe', {
-      body: { url },
+      body: payload,
     });
 
     if (error) {
@@ -30,7 +51,7 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
       }
       return {
         success: false,
-        error: 'Could not reach the recipe import service. Try a different link.',
+        error: 'Could not reach the recipe import service. Please try again.',
       };
     }
 
@@ -38,7 +59,7 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
       return { success: false, error: data?.error ?? 'Could not parse the recipe.' };
     }
 
-    const recipeId = await saveRecipeToLocalDB(data.recipe, url);
+    const recipeId = await saveRecipeToLocalDB(data.recipe, sourceUrl);
     return { success: true, recipeId };
   } catch (e) {
     console.error('[import] unexpected error', e);
@@ -46,7 +67,28 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
   }
 }
 
-async function saveRecipeToLocalDB(parsed: ParsedRecipe, sourceUrl: string): Promise<string> {
+export function importRecipeFromUrl(url: string): Promise<ImportResult> {
+  return runImport({ url }, url);
+}
+
+/**
+ * Photo import. `imageBase64` must already be a downscaled JPEG — see
+ * `processRecipePhoto` in src/lib/photoImport.ts. The server rejects HEIC, so
+ * transcoding is the client's job and is not optional on iOS.
+ */
+export function importRecipeFromPhoto(imageBase64: string): Promise<ImportResult> {
+  return runImport({ imageBase64, mediaType: 'image/jpeg' }, null);
+}
+
+/** Manual / pasted-text import. */
+export function importRecipeFromText(text: string): Promise<ImportResult> {
+  return runImport({ text }, null);
+}
+
+async function saveRecipeToLocalDB(
+  parsed: ParsedRecipe,
+  sourceUrl: string | null,
+): Promise<string> {
   const userId = await getCurrentUserId();
   const recipeId = Crypto.randomUUID();
   const tintKey = pickTint(recipeId);

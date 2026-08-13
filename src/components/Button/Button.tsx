@@ -1,8 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import type { LucideProps } from 'lucide-react-native';
 import { colors, radii, spacing } from '../../theme';
 import { Text } from '../Text';
+
+type LucideIcon = React.ComponentType<LucideProps>;
 
 export interface ButtonProps {
   // `cookPrimary` is the primary CTA on the Pine cook surface — a Cream fill with
@@ -14,6 +17,8 @@ export interface ButtonProps {
   fullWidth?: boolean;
   hapticFeedback?: boolean;
   accessibilityLabel?: string;
+  /** Optional leading icon. Rendered in the label's color at 1.5px stroke. */
+  icon?: LucideIcon;
 }
 
 export function Button({
@@ -24,6 +29,7 @@ export function Button({
   fullWidth = true,
   hapticFeedback = true,
   accessibilityLabel,
+  icon: Icon,
 }: ButtonProps) {
   const handlePress = async () => {
     if (hapticFeedback) await Haptics.selectionAsync();
@@ -53,14 +59,17 @@ export function Button({
         disabled && styles.disabled,
       ]}
     >
-      <Text
-        role="body"
-        color={textColor}
-        numberOfLines={1}
-        style={styles.label}
-      >
-        {label}
-      </Text>
+      <View style={styles.content}>
+        {Icon && <Icon size={20} color={colors[textColor]} strokeWidth={1.5} />}
+        <Text
+          role="body"
+          color={textColor}
+          numberOfLines={1}
+          style={styles.label}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -83,6 +92,14 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
+  },
+  // Row so an optional leading icon sits beside the label; with no icon this
+  // collapses to the previous centered-label layout.
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   label: {
     fontWeight: '600',

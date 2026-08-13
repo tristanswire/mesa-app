@@ -53,6 +53,13 @@
             }
           ]
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Mesa uses your photo library so you can import a recipe from a photo of a cookbook page or recipe card.",
+          "cameraPermission": "Mesa uses your camera so you can photograph a cookbook page or recipe card to import the recipe."
+        }
       ]
     ],
     "extra": {
