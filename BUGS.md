@@ -28,7 +28,6 @@ Also: `WONTFIX` (with a reason) and `CANT-REPRO`.
 
 | ID | Sev | Area | Summary | Repro / Trigger | Suspected cause | Criterion | Status |
 |----|-----|------|---------|-----------------|-----------------|-----------|--------|
-| MESA-013 | S1 | Profile | No privacy policy link in-app — App Store submission requirement | n/a — missing UI | privacy-policy link never added | 7.3 | OPEN |
 | MESA-011 | S3 | Home | Greeting recomputes `new Date()` on every render (won't tick over without a re-render) | n/a — cosmetic | inline `getTimeGreeting()` per render (`HomeScreen.tsx`) | — | OPEN |
 | MESA-003 | S2 | Home | Hero "Last Cooked" also shows as the first "In your Bank" card (duplicate) | Home with ≥1 cooked recipe | hero `all[0]` + bank `slice(0,2)` overlap; hero wasn't from cook history | 3.1 | IN PROGRESS (R1 — verify) |
 | MESA-004 | S3 | Home | "Worth a try" row implied discovery but showed the user's own library | Home with ≥3 recipes | mislabeled own-library slice; relabeled "More from your bank" | 3.1 | IN PROGRESS (R1 — verify) |
@@ -39,9 +38,9 @@ Also: `WONTFIX` (with a reason) and `CANT-REPRO`.
 | MESA-009 | S2 | Theme | Terracotta primary CTA on Pine surface (2.22:1 fail) | Cook Mode Next/Finish btn; PostCook Save btn | global `primary` variant (Terracotta) on a Pine bg | 2.4.1 | IN PROGRESS (R2 — `cookPrimary` variant — verify) |
 | MESA-010 | S3 | CookMode | Light-mode step number rendered in Clay (fails AA) | Cook Mode in light appearance | `stepNumberColor: 'clay'` in light theme | 3.12 | IN PROGRESS (R2 — Terracotta — verify) |
 
-> **MESA-013** is a launch-blocking gate (not app-side feature work) — it blocks App Store submission and must clear before external beta. (MESA-012, the other gate, is resolved — see the Resolved Log.)
+> **Launch-blocking gates: both clear.** MESA-012 (JWT verification) and MESA-013 (privacy policy) are resolved — see the Resolved Log. No launch-blocking gates remain open.
 > **Criterion** = the ACCEPTANCE_CRITERIA.md ID if the bug maps to one, else `—`.
-> Still-MISSING features (not bugs, tracked in ACCEPTANCE_CRITERIA, not duplicated here): library search is title-only (3.2); Photo/Manual import (3.3) — deferred to a later round; footer privacy-policy link absent (7.3).
+> Still-MISSING features (not bugs, tracked in ACCEPTANCE_CRITERIA, not duplicated here): library search is title-only (3.2); Photo/Manual import (3.3) — deferred to a later round.
 
 ---
 
@@ -86,6 +85,8 @@ Move fixed rows here. Keep newest at top.
 
 | ID | Sev | Area | Summary | Fixed in build | Fix note |
 |----|-----|------|---------|----------------|----------|
+| MESA-014 | S2 | CookMode | Light-mode "Next Step" button invisible — Cream fill on the Cream background (1:1 contrast) | Build 9 | **Regression introduced by the MESA-009 fix**: `cookPrimary` (Cream fill / Pine text, built for the Pine surface) was hardcoded at the call site instead of branching per appearance, so light mode rendered background-on-background. Added `primaryButtonVariant` to the Cook Mode theme table (`CookModeView.tsx`) — light → `primary` (Terracotta `#8A3A1E` fill), dark → `cookPrimary` (unchanged). "← Previous" already correct (Oat/Ink) in both modes. `tsc` clean. Commit `43f5bd4`. **Verified on-device on Build 9 — Terracotta on Cream, fully visible.** |
+| MESA-013 | S1 | Profile | No privacy policy link in-app — App Store submission requirement | Build 9 | Privacy policy live at <https://mesa-marketing-one.vercel.app/privacy> with footer link. Fixed in the **marketing repo** (commit `7546d49`), not this repo — no app-side code change. Closes launch-blocking gate 7.3. |
 | MESA-012 | S1 | Backend | `verify_jwt = false` in `supabase/config.toml` — must revert to legacy JWT keys before external beta | Build 8 | Root cause was the client env, not the function: EAS production carried a publishable key (`sb_publishable_*`) the gateway rejects as `UNAUTHORIZED_INVALID_JWT_FORMAT`. With the legacy JWT anon key (`eyJ...`) restored and baked into Build 8, set `verify_jwt = true` (`supabase/config.toml`) and redeployed `import-recipe`. Verified: `curl` with **no** auth header → `401 UNAUTHORIZED_NO_AUTH_HEADER`; same call with the anon key → `200`; live import from Build 8 on TestFlight succeeds. Client path audited unchanged — `supabase.functions.invoke` attaches `Authorization` automatically. Anthropic API cost exposure re-gated. |
 | MESA-002 | S2 | Nav | Component Showcase (dev gallery) reachable in shipping build | Build 8 | Gated the Profile entry point behind `__DEV__` so it renders in dev builds only. Route left registered in `MainNavigator` (unreachable with no entry point and no deep link). `tsc` clean. **Verified on the Build 8 release/TestFlight build — the Showcase link is absent.** |
 | MESA-001 | S2 | Build | Watch-list claimed a "Round 3a-anim" added Reanimated for a swipe **slide** transition + a "Babel plugin must stay LAST" requirement — none of that exists | doc (this edit) | Verified: no `react-native-reanimated` in `package.json`, `node_modules`, or `babel.config.js`; no such commit. Round 3a swipe is gesture-handler-only with an **instant** (not slide) transition. Corrected the watch-list entry. Risk if left: someone "restores" a Reanimated Babel plugin with no Reanimated installed → broken build (would've been S1), or wastes time chasing a slide-transition bug that can't exist. |
