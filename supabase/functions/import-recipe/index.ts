@@ -205,8 +205,7 @@ serve(async (req) => {
       }
 
       if (recipe.imageUrl) {
-        const recipeFileId = crypto.randomUUID();
-        recipe.imageUrl = await downloadAndStoreImage(recipe.imageUrl, recipeFileId);
+        recipe.imageUrl = await storeImageBestEffort(recipe.imageUrl);
       }
 
       return jsonResponse({ success: true, recipe });
@@ -221,8 +220,7 @@ serve(async (req) => {
     }
 
     if (result.imageUrl) {
-      const recipeFileId = crypto.randomUUID();
-      result.imageUrl = await downloadAndStoreImage(result.imageUrl, recipeFileId);
+      result.imageUrl = await storeImageBestEffort(result.imageUrl);
     }
 
     return jsonResponse({ success: true, recipe: result });
@@ -231,6 +229,23 @@ serve(async (req) => {
     return jsonResponse({ success: false, error: 'Something went wrong. Please try again.' });
   }
 });
+
+/**
+ * Best-effort image capture. `downloadAndStoreImage` already returns null on
+ * every failure it anticipates, but this is the last line of defense: an
+ * unexpected throw (bad env, storage client construction, a non-Error rejection)
+ * must never fail an import whose recipe already parsed successfully. The image
+ * is decorative; the recipe is the product. Returns null so the client falls
+ * back to its placeholder.
+ */
+async function storeImageBestEffort(imageUrl: string): Promise<string | null> {
+  try {
+    return await downloadAndStoreImage(imageUrl, crypto.randomUUID());
+  } catch (e) {
+    console.error('[import-recipe] image step failed; returning recipe without image:', e);
+    return null;
+  }
+}
 
 function jsonResponse(body: ImportResponse) {
   return new Response(JSON.stringify(body), {

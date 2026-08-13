@@ -135,12 +135,14 @@ export async function setRecipeCategory(
     .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
 }
 
-// Hard-deletes a recipe and everything hanging off it. The schema declares
-// `onDelete: 'cascade'` on every child FK, but nothing in the app ever runs
-// `PRAGMA foreign_keys = ON` (SQLite defaults it OFF), so those cascades never
-// fire — each child table has to be cleared explicitly, deepest first, or the
-// rows survive as orphans. Wrapped in a transaction so a mid-way failure can't
-// leave a half-deleted recipe behind.
+// Hard-deletes a recipe and everything hanging off it. `PRAGMA foreign_keys =
+// ON` is now set at connection open (`src/db/client.ts`), so the schema's
+// `onDelete: 'cascade'` declarations would clear these children on their own.
+// The explicit deletes are kept deliberately: they are deepest-first and
+// therefore FK-safe either way, they keep the delete correct on any pre-pragma
+// database, and they document the full blast radius at the call site. Belt and
+// braces — do not remove one on the assumption the other is running. Wrapped in
+// a transaction so a mid-way failure can't leave a half-deleted recipe behind.
 export async function deleteRecipe(recipeId: string): Promise<void> {
   const userId = await getCurrentUserId();
 
