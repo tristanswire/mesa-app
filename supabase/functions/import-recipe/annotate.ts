@@ -1,11 +1,14 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.32.0';
-import type { ParsedRecipe, ParsedStep } from './types.ts';
+import type { ParsedRecipe, ParsedStep, ParsedTool } from './types.ts';
 import type { PartialRecipe } from './jsonld.ts';
 import { ANNOTATE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
+import { mergeTools, normalizeTools } from './tools.ts';
 
 type AnnotateResponse = {
   category?: string | null;
+  /** Model-suggested equipment. Source pages almost never declare their own. */
+  tools?: ParsedTool[];
   steps: ParsedStep[];
 };
 
@@ -89,7 +92,10 @@ export async function annotateRecipe(
     ingredients: cleanIngredients,
     steps: parsed.steps,
     prepItems: partial.prepItems,
-    tools: partial.tools,
+    // schema.org `tool` is published by almost no recipe site, so partial.tools
+    // is nearly always empty and the model's suggestions are what the user
+    // actually sees. Page data still wins when it exists.
+    tools: mergeTools(partial.tools, parsed.tools),
   };
 }
 
@@ -110,6 +116,8 @@ export function buildFallbackRecipe(partial: PartialRecipe): ParsedRecipe {
       timers: [],
     })),
     prepItems: partial.prepItems,
-    tools: partial.tools,
+    // Degraded path — annotation failed, so there are no model-suggested tools
+    // to fall back on. Only page-declared tools survive here.
+    tools: normalizeTools(partial.tools),
   };
 }

@@ -3,6 +3,7 @@ import type { ParsedRecipe, VisionMediaType } from './types.ts';
 import { FULL_PARSE_PROMPT, PHOTO_PARSE_PROMPT, TEXT_PARSE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
 import { stripParentheticals } from './text.ts';
+import { normalizeTools } from './tools.ts';
 
 const PARSE_FAILED = 'Could not parse the recipe from this page.';
 const PHOTO_PARSE_FAILED = "We couldn't read that photo. Try a clearer shot.";
@@ -173,7 +174,10 @@ async function runParse(
     return { kind: 'invalid' };
   }
 
-  return { kind: 'recipe', recipe: stripIngredientParentheticals(parsed) };
+  const cleaned = stripIngredientParentheticals(parsed);
+  // Model output is untrusted: a null price/partner would fail the client's
+  // NOT NULL tools insert and sink an otherwise-good import.
+  return { kind: 'recipe', recipe: { ...cleaned, tools: normalizeTools(cleaned.tools) } };
 }
 
 /**

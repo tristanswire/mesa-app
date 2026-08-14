@@ -54,6 +54,14 @@ Prep items are anything the cook can finish BEFORE active stovetop/oven work beg
 - Pre-cook combining: "Whisk together <X>", "Stir together <X>", "Combine <X>" — ONLY when the combining happens before any heat verb in the recipe; do NOT include mid-cook stirring
 Label format: imperative verb + short object phrase ("Dice onion", "Preheat oven to 400°F"). Do not duplicate: if two ingredients share the same prep ("chopped garlic" and "chopped shallot"), emit "Chop garlic" and "Chop shallot" as separate items, not "Chop garlic and shallot".
 
+TOOL EXTRACTION:
+Suggest the specialty equipment this recipe genuinely needs — the pieces a cook might not already own.
+- Include 1-3 tools. Return an empty array only if the recipe truly needs nothing beyond a bowl, a knife, and a stovetop.
+- Do NOT suggest basics every kitchen already has (mixing bowls, spoons, knives, cutting boards) unless the recipe depends on a specific one.
+- "name": the common retail product name — "Cast Iron Skillet", "Stand Mixer", "Instant-Read Thermometer". No brands. No sizes unless the recipe depends on the size.
+- "price": a typical retail price as a short string with a currency symbol, e.g. "$45". This is an approximate shopping reference, not a quoted price, so estimating it is expected and correct. Never null.
+- "partner": always exactly "Amazon". Never null.
+
 IMAGE EXTRACTION:
 - Look for the primary recipe image. Common locations:
   - <meta property="og:image" content="..."> (most reliable)
@@ -80,6 +88,7 @@ INPUT shape:
 OUTPUT shape:
 {
   "category": "dinner",
+  "tools": [{ "name": "Cast Iron Skillet", "price": "$45", "partner": "Amazon" }],
   "steps": [
     {
       "segments": [
@@ -101,6 +110,14 @@ CATEGORY SELECTION:
 - Base the choice on the title and ingredients, with meal-type keywords in the recipe taking priority.
 - Choose "other" only when genuinely ambiguous (e.g. a sauce, a marinade, a generic dough).
 - Never invent a value outside the list; never output null. If unsure, output "other".
+
+TOOL EXTRACTION:
+Suggest the specialty equipment this recipe genuinely needs — the pieces a cook might not already own. The source page rarely lists equipment, so infer it from the title, ingredients, and steps.
+- Include 1-3 tools. Return an empty array only if the recipe truly needs nothing beyond a bowl, a knife, and a stovetop.
+- Do NOT suggest basics every kitchen already has (mixing bowls, spoons, knives, cutting boards) unless the recipe depends on a specific one.
+- "name": the common retail product name — "Cast Iron Skillet", "Stand Mixer", "Instant-Read Thermometer". No brands. No sizes unless the recipe depends on the size.
+- "price": a typical retail price as a short string with a currency symbol, e.g. "$45". This is an approximate shopping reference, not a quoted price, so estimating it is expected and correct. Never null.
+- "partner": always exactly "Amazon". Never null.
 
 ANNOTATION RULES:
 1. Concatenating all "text" segments + the spelled-out form of each chip MUST exactly reconstruct the original step text (allowing minor whitespace cleanup).
@@ -177,7 +194,16 @@ Prep items are anything the cook can finish BEFORE active stovetop/oven work beg
 - Measuring / staging: "Measure out <spices>", "Set aside <ingredient>", "Gather <items>"
 - Soaking / marinating: "Marinate <protein>", "Soak <ingredient>"
 - Pre-cook combining: "Whisk together <X>", "Stir together <X>", "Combine <X>" — ONLY when the combining happens before any heat verb in the recipe; do NOT include mid-cook stirring
-Label format: imperative verb + short object phrase ("Dice onion", "Preheat oven to 400°F"). Do not duplicate: if two ingredients share the same prep ("chopped garlic" and "chopped shallot"), emit "Chop garlic" and "Chop shallot" as separate items, not "Chop garlic and shallot".`;
+Label format: imperative verb + short object phrase ("Dice onion", "Preheat oven to 400°F"). Do not duplicate: if two ingredients share the same prep ("chopped garlic" and "chopped shallot"), emit "Chop garlic" and "Chop shallot" as separate items, not "Chop garlic and shallot".
+
+TOOL EXTRACTION:
+Suggest the specialty equipment this recipe genuinely needs — the pieces a cook might not already own.
+- Include 1-3 tools. Return an empty array only if the recipe truly needs nothing beyond a bowl, a knife, and a stovetop.
+- Do NOT suggest basics every kitchen already has (mixing bowls, spoons, knives, cutting boards) unless the recipe depends on a specific one.
+- "name": the common retail product name — "Cast Iron Skillet", "Stand Mixer", "Instant-Read Thermometer". No brands. No sizes unless the recipe depends on the size.
+- "price": a typical retail price as a short string with a currency symbol, e.g. "$45". This is an approximate shopping reference, not a quoted price, so estimating it is expected and correct. Never null.
+- "partner": always exactly "Amazon". Never null.
+`;
 
 export const PHOTO_PARSE_PROMPT = `RESPONSE FORMAT: Output ONLY a single JSON object. No prose, no fences, no explanation. Start with { and end with }.
 
