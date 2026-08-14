@@ -2,9 +2,20 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { ChevronLeft, ExternalLink, MoreVertical, Trash2 } from 'lucide-react-native';
+import { Camera, ChevronLeft, ExternalLink, MoreVertical, Trash2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { ActionSheet, type ActionSheetItem } from '../../components/ActionSheet';
 import { AffiliateCard } from '../../components/AffiliateCard';
 import { Button } from '../../components/Button';
@@ -24,8 +35,10 @@ import {
   deleteRecipe,
   RECIPE_CATEGORY_LABELS,
   setRecipeCategory,
+  setRecipePhoto,
   type RecipeCategory,
 } from '../../data/recipes';
+import { captureRecipePhotoFile, type PhotoSource } from '../../lib/photoImport';
 import { convertAmount } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
@@ -56,6 +69,58 @@ export function RecipeDetailScreen() {
   useEffect(() => {
     if (recipe) setCategory(recipe.category);
   }, [recipe?.id, recipe?.category]);
+
+  // Same mirror pattern as `category`: useRecipeDetail is a one-shot fetch, so
+  // a newly saved photo needs local state to appear without leaving the screen.
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+
+  useEffect(() => {
+    if (recipe) setImageUrl(recipe.imageUrl);
+  }, [recipe?.id, recipe?.imageUrl]);
+
+  const handlePhotoPick = async (recipeId: string, source: PhotoSource) => {
+    const captured = await captureRecipePhotoFile(source);
+    if (captured.status === 'cancelled') return;
+    if (captured.status === 'error') {
+      Alert.alert("Couldn't add photo", captured.message);
+      return;
+    }
+
+    setSavingPhoto(true);
+    try {
+      const uri = await setRecipePhoto(recipeId, captured.uri);
+      // A fresh filename per save, so the Image cache can't serve the old one.
+      setImageUrl(uri);
+      setHeroImageFailed(false);
+    } catch (e) {
+      console.error('[recipeDetail] failed to save photo', e);
+      Alert.alert("Couldn't add photo", 'Something went wrong. Please try again.');
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
+
+  const showPhotoOptions = (recipeId: string) => {
+    if (savingPhoto) return;
+    // Mirrors ImportScreen's sheet. Non-iOS falls back to the library picker
+    // rather than doing nothing.
+    if (Platform.OS !== 'ios') {
+      void handlePhotoPick(recipeId, 'library');
+      return;
+    }
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Take Photo', 'Choose from Library'],
+        cancelButtonIndex: 0,
+        title: 'Recipe photo',
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) void handlePhotoPick(recipeId, 'camera');
+        else if (buttonIndex === 2) void handlePhotoPick(recipeId, 'library');
+      },
+    );
+  };
 
   const handleCategoryChange = (next: RecipeCategory | null) => {
     if (!recipe) return;
@@ -175,7 +240,7 @@ export function RecipeDetailScreen() {
     ? recipe.ingredients
     : recipe.ingredients.slice(0, 4);
   const hasMoreIngredients = recipe.ingredients.length > 4;
-  const showHeroPlaceholder = !recipe.imageUrl || heroImageFailed;
+  const showHeroPlaceholder = !imageUrl || heroImageFailed;
   // Max 2 affiliate cards per surface (matches Prep Mode and PostCook).
   const displayedTools = recipe.tools.slice(0, 2);
 
@@ -191,6 +256,11 @@ export function RecipeDetailScreen() {
           },
         ]
       : []),
+    {
+      label: 'Change Photo',
+      icon: Camera,
+      onPress: () => showPhotoOptions(recipe.id),
+    },
     {
       label: 'Delete Recipe',
       icon: Trash2,
@@ -210,14 +280,28 @@ export function RecipeDetailScreen() {
         {/* ── Hero image (clean, no overlay) ─────────────────────────── */}
         <View style={styles.hero}>
           {showHeroPlaceholder ? (
-            <RecipeImagePlaceholder />
+            <Pressable
+              onPress={() => showPhotoOptions(recipe.id)}
+              disabled={savingPhoto}
+              style={StyleSheet.absoluteFill}
+              accessibilityRole="button"
+              accessibilityLabel="Add a photo for this recipe"
+            >
+              <RecipeImagePlaceholder showAddPhoto />
+            </Pressable>
           ) : (
             <Image
-              source={{ uri: recipe.imageUrl! }}
+              source={{ uri: imageUrl! }}
               onError={() => setHeroImageFailed(true)}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
+          )}
+
+          {savingPhoto && (
+            <View style={styles.heroSaving} pointerEvents="none">
+              <ActivityIndicator color={colors.terracotta} />
+            </View>
           )}
         </View>
 
@@ -410,6 +494,12 @@ export function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  heroSaving: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(247, 242, 234, 0.6)',
+  },
   root: {
     flex: 1,
     backgroundColor: colors.cream,

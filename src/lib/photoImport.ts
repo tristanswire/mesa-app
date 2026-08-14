@@ -25,6 +25,14 @@ export type PhotoResult =
   | { status: 'cancelled' }
   | { status: 'error'; message: string };
 
+/** A processed JPEG on disk (cache dir). `base64` is populated only on request. */
+export type ProcessedPhoto = { uri: string; base64: string | null };
+
+export type PhotoFileResult =
+  | { status: 'ok'; uri: string }
+  | { status: 'cancelled' }
+  | { status: 'error'; message: string };
+
 /**
  * Prompts for the permission this source needs. Returns false (after showing a
  * Settings alert) when the user has denied it and iOS will no longer re-prompt.
@@ -66,7 +74,12 @@ async function ensurePermission(source: PhotoSource): Promise<boolean> {
  * JPEG/PNG/WebP/GIF). Saving through SaveFormat.JPEG normalizes every input —
  * HEIC, PNG, whatever the library hands back — to a format the server accepts.
  */
-async function processImage(uri: string, width: number, height: number): Promise<string | null> {
+async function processImage(
+  uri: string,
+  width: number,
+  height: number,
+  wantBase64: boolean,
+): Promise<ProcessedPhoto | null> {
   const context = ImageManipulator.manipulate(uri);
 
   // Resize only when the image exceeds the cap, and constrain the longer edge
@@ -80,10 +93,52 @@ async function processImage(uri: string, width: number, height: number): Promise
   const saved = await rendered.saveAsync({
     compress: JPEG_QUALITY,
     format: SaveFormat.JPEG,
-    base64: true,
+    // Skipped for the save-to-disk path — encoding a 1600px JPEG to base64 we
+    // never read is pure cost.
+    base64: wantBase64,
   });
 
-  return saved.base64 ?? null;
+  if (!saved.uri) return null;
+  return { uri: saved.uri, base64: saved.base64 ?? null };
+}
+
+/**
+ * Permission → picker → downscale → JPEG transcode. The shared half of both
+ * photo features; callers decide whether they need base64 (import upload) or
+ * the file on disk (user-added recipe photo).
+ */
+async function pickAndProcess(
+  source: PhotoSource,
+  wantBase64: boolean,
+): Promise<{ status: 'ok'; photo: ProcessedPhoto } | { status: 'cancelled' } | { status: 'error'; message: string }> {
+  const permitted = await ensurePermission(source);
+  if (!permitted) return { status: 'cancelled' };
+
+  const options: ImagePicker.ImagePickerOptions = {
+    mediaTypes: ['images'],
+    // Full quality here — compression happens once, during the resize pass
+    // below, so we don't stack two lossy JPEG encodes on the same pixels.
+    quality: 1,
+    exif: false,
+  };
+
+  const picked =
+    source === 'camera'
+      ? await ImagePicker.launchCameraAsync(options)
+      : await ImagePicker.launchImageLibraryAsync(options);
+
+  if (picked.canceled) return { status: 'cancelled' };
+
+  const asset = picked.assets?.[0];
+  if (!asset?.uri) {
+    return { status: 'error', message: "We couldn't read that photo. Try taking it again." };
+  }
+
+  const photo = await processImage(asset.uri, asset.width, asset.height, wantBase64);
+  if (!photo) {
+    return { status: 'error', message: "We couldn't process that photo. Try another one." };
+  }
+  return { status: 'ok', photo };
 }
 
 /** Decoded byte length of a base64 string, without allocating the buffer. */
@@ -98,30 +153,10 @@ function base64ByteLength(b64: string): number {
  */
 export async function captureRecipePhoto(source: PhotoSource): Promise<PhotoResult> {
   try {
-    const permitted = await ensurePermission(source);
-    if (!permitted) return { status: 'cancelled' };
+    const result = await pickAndProcess(source, true);
+    if (result.status !== 'ok') return result;
 
-    const options: ImagePicker.ImagePickerOptions = {
-      mediaTypes: ['images'],
-      // Full quality here — compression happens once, during the resize pass
-      // below, so we don't stack two lossy JPEG encodes on the same pixels.
-      quality: 1,
-      exif: false,
-    };
-
-    const picked =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync(options)
-        : await ImagePicker.launchImageLibraryAsync(options);
-
-    if (picked.canceled) return { status: 'cancelled' };
-
-    const asset = picked.assets?.[0];
-    if (!asset?.uri) {
-      return { status: 'error', message: "We couldn't read that photo. Try taking it again." };
-    }
-
-    const base64 = await processImage(asset.uri, asset.width, asset.height);
+    const base64 = result.photo.base64;
     if (!base64) {
       return { status: 'error', message: "We couldn't process that photo. Try another one." };
     }
@@ -135,6 +170,23 @@ export async function captureRecipePhoto(source: PhotoSource): Promise<PhotoResu
     return { status: 'ok', base64 };
   } catch (e) {
     console.error('[photoImport] capture failed', e);
+    return { status: 'error', message: "We couldn't process that photo. Try another one." };
+  }
+}
+
+/**
+ * Same capture pipeline, but the result stays a file. Used for user-added
+ * recipe photos, which are stored locally and never uploaded — the returned
+ * URI points into the cache directory, so callers must move it somewhere
+ * durable (see saveRecipePhoto in src/lib/recipePhoto.ts).
+ */
+export async function captureRecipePhotoFile(source: PhotoSource): Promise<PhotoFileResult> {
+  try {
+    const result = await pickAndProcess(source, false);
+    if (result.status !== 'ok') return result;
+    return { status: 'ok', uri: result.photo.uri };
+  } catch (e) {
+    console.error('[photoImport] capture-to-file failed', e);
     return { status: 'error', message: "We couldn't process that photo. Try another one." };
   }
 }

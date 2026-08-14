@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../db/client';
+import { deleteRecipePhotoFile, saveRecipePhoto } from '../lib/recipePhoto';
 import {
   clicks,
   cookPrepState,
@@ -135,6 +136,33 @@ export async function setRecipeCategory(
     .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
 }
 
+/**
+ * Store a user-chosen photo for this recipe.
+ *
+ * `processedUri` must already be a downscaled JPEG in the cache directory (see
+ * captureRecipePhotoFile). The file is moved into durable storage and the
+ * previous local photo, if any, is deleted. Returns the new `file://` URI so
+ * the caller can update its view without a re-fetch.
+ */
+export async function setRecipePhoto(recipeId: string, processedUri: string): Promise<string> {
+  const userId = await getCurrentUserId();
+
+  const owned = await db
+    .select({ id: recipes.id, imageUrl: recipes.imageUrl })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+  if (owned.length === 0) throw new Error('[recipes] cannot set photo on a recipe you do not own');
+
+  const uri = saveRecipePhoto(recipeId, processedUri, owned[0].imageUrl);
+
+  await db
+    .update(recipes)
+    .set({ imageUrl: uri, updatedAt: new Date().toISOString() })
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+
+  return uri;
+}
+
 // Hard-deletes a recipe and everything hanging off it. `PRAGMA foreign_keys =
 // ON` is now set at connection open (`src/db/client.ts`), so the schema's
 // `onDelete: 'cascade'` declarations would clear these children on their own.
@@ -149,10 +177,15 @@ export async function deleteRecipe(recipeId: string): Promise<void> {
   // Ownership check up front — the delete below is scoped to this user, and
   // bailing early avoids clearing children of someone else's recipe.
   const owned = await db
-    .select({ id: recipes.id })
+    .select({ id: recipes.id, imageUrl: recipes.imageUrl })
     .from(recipes)
     .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
   if (owned.length === 0) return;
+
+  // Captured before the row is gone. The file is unlinked after the
+  // transaction commits so a rolled-back delete can't orphan the recipe from
+  // its photo.
+  const localPhoto = owned[0].imageUrl;
 
   db.transaction((tx) => {
     // cook_prep_state points at both cooks and prep_items, so it goes first.
@@ -180,6 +213,10 @@ export async function deleteRecipe(recipeId: string): Promise<void> {
       .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
       .run();
   });
+
+  // Cascade doesn't reach the filesystem — without this the JPEG outlives the
+  // recipe forever, invisible to the user and to any cleanup path.
+  deleteRecipePhotoFile(localPhoto);
 }
 
 export async function getRecipe(id: string): Promise<RecipeDetail | null> {
