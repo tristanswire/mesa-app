@@ -3,5 +3,6 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["supabase/functions"]
+  "//": "Deno-runtime files are excluded from tsc — they use https: imports and the Deno global, and are type-checked by `deno test` instead.",
+  "exclude": ["supabase/functions", "src/**/__tests__"]
 }

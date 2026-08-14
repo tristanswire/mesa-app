@@ -14,6 +14,8 @@ import { ProgressBar } from '../../components/ProgressBar';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { useRecipeDetail } from '../../data/hooks';
+import { getUserPreferences, type MeasurementSystem } from '../../data/preferences';
+import { convertTemperatures } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, shadows, spacing } from '../../theme';
 
@@ -28,6 +30,22 @@ export function PrepModeScreen() {
   const { data: recipe, loading } = useRecipeDetail(route.params.recipeId);
 
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  // Prep labels are free text. Only temperatures are converted — quantities can
+  // appear mid-sentence ("Measure out 2 cups flour") where a rewrite is far more
+  // likely to mangle the label than to help.
+  const [system, setSystem] = useState<MeasurementSystem>('imperial');
+  useEffect(() => {
+    let cancelled = false;
+    getUserPreferences()
+      .then((prefs) => {
+        if (!cancelled) setSystem(prefs.measurementSystem);
+      })
+      .catch((e) => console.error('[prepmode] failed to read measurement pref', e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Re-initialize the checked state when navigating between recipes — keyed on recipe id
   // so PrepMode resets cleanly across screens.
@@ -192,7 +210,7 @@ export function PrepModeScreen() {
             {prepItems.map((item) => (
               <PrepChecklistItem
                 key={item.id}
-                label={item.label}
+                label={convertTemperatures(item.label, system)}
                 duration={item.duration ?? undefined}
                 checked={!!checkedItems[item.id]}
                 onToggle={() => handleToggle(item.id)}

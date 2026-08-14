@@ -24,7 +24,7 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { CookStepPane, type PaneTheme } from './CookStepPane';
 import { completeCook } from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
-import { getUserPreferences } from '../../data/preferences';
+import { getUserPreferences, type MeasurementSystem } from '../../data/preferences';
 import type { MainStackParamList } from '../../navigation/types';
 import type { ColorToken } from '../../theme';
 import { colors, spacing } from '../../theme';
@@ -167,6 +167,22 @@ export function CookModeView({
 
   const [stepIndex, setStepIndex] = useState(initialStepIndex);
   const { width: screenWidth } = useWindowDimensions();
+
+  // Ingredient chips are stored as pre-rendered display strings, so the
+  // US/Metric preference has to be applied at render time. Read once on mount,
+  // mirroring RecipeDetailScreen; the toggle itself lives there.
+  const [system, setSystem] = useState<MeasurementSystem>('imperial');
+  useEffect(() => {
+    let cancelled = false;
+    getUserPreferences()
+      .then((prefs) => {
+        if (!cancelled) setSystem(prefs.measurementSystem);
+      })
+      .catch((e) => console.error('[cookmode] failed to read measurement pref', e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Horizontal offset of the 3-pane row. 0 = current step centered; -width =
   // next step centered; +width = previous step centered.
@@ -413,6 +429,7 @@ export function CookModeView({
                     textScale={textScale}
                     timers={timers}
                     onTimerPress={handleTimerPress}
+                    system={system}
                   />
                 </View>
               );

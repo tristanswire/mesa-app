@@ -4,7 +4,9 @@ import { IngredientChip } from '../../components/IngredientChip';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { TimerToken } from '../../components/TimerToken';
+import type { MeasurementSystem } from '../../data/preferences';
 import type { RecipeDetail } from '../../data/recipes';
+import { convertLeadingAmount } from '../../lib/units';
 import type { ColorToken } from '../../theme';
 import { spacing } from '../../theme';
 import { COOK_TEXT_MAX_FONT_MULTIPLIER } from './textSize';
@@ -32,14 +34,19 @@ export type CookStepPaneProps = {
   textScale: { fontSize: number; lineHeight: number; columnGap: number };
   timers: Record<string, TimerState>;
   onTimerPress: (timerId: string, label: string, durationSeconds: number) => void;
+  /** Chips are stored as display strings, so conversion happens at render. */
+  system: MeasurementSystem;
 };
 
-export function stepToPlainText(step: RecipeStep): string {
+export function stepToPlainText(step: RecipeStep, system: MeasurementSystem): string {
   return step.segments
     .map((seg) => {
       if (seg.type === 'text') return seg.content;
       if (seg.type === 'ingredient') {
-        return step.ingredients.find((x) => x.id === seg.ingredientId)?.display ?? '';
+        const display = step.ingredients.find((x) => x.id === seg.ingredientId)?.display;
+        // Same conversion the chips get, so the NEXT preview can't disagree
+        // with the step it is previewing.
+        return display ? convertLeadingAmount(display, system) : '';
       }
       return step.timers.find((x) => x.id === seg.timerId)?.label ?? '';
     })
@@ -60,6 +67,7 @@ export function CookStepPane({
   textScale,
   timers,
   onTimerPress,
+  system,
 }: CookStepPaneProps) {
   return (
     <ScrollView
@@ -105,7 +113,7 @@ export function CookStepPane({
             return [
               <IngredientChip
                 key={`ing-${segIdx}`}
-                label={ing?.display ?? ''}
+                label={ing ? convertLeadingAmount(ing.display, system) : ''}
                 theme={theme.chipTheme}
               />,
             ];
@@ -141,7 +149,7 @@ export function CookStepPane({
           <SectionLabel color={theme.sectionLabelColor}>NEXT</SectionLabel>
           <View style={{ height: spacing.sm }} />
           <Text role="cookModeBody" color={theme.nextPreviewColor} numberOfLines={2}>
-            {stepToPlainText(nextStep)}
+            {stepToPlainText(nextStep, system)}
           </Text>
         </>
       ) : (

@@ -107,9 +107,14 @@ export function convertAmount(amount: string, system: MeasurementSystem): string
   return system === 'metric' ? `${formatMetric(g)} g` : formatImperialMass(g);
 }
 
-function parseQuantityAndUnit(
-  raw: string,
-): { quantity: number; unit: UnitDef } | null {
+type ParsedAmount = {
+  quantity: number;
+  unit: UnitDef;
+  /** Text after the unit token — the ingredient name, for chip display strings. */
+  remainder: string;
+};
+
+function parseQuantityAndUnit(raw: string): ParsedAmount | null {
   // Split off the leading numeric portion (digits, fractions, unicode fractions,
   // decimals, mixed forms like "1 1/2" or "1 ½"). The unit is whatever follows.
   const qtyMatch = raw.match(
@@ -125,9 +130,70 @@ function parseQuantityAndUnit(
   if (!rest) return null; // no unit → unitless, pass through
 
   for (const unit of UNITS) {
-    if (unit.pattern.test(rest)) return { quantity, unit };
+    // Every UNITS pattern is anchored with ^, so the match length is exactly
+    // the unit token — everything past it is the trailing name.
+    const match = rest.match(unit.pattern);
+    if (match) {
+      return { quantity, unit, remainder: rest.slice(match[0].length).trim() };
+    }
   }
   return null;
+}
+
+/**
+ * Convert a leading quantity+unit inside a longer string, preserving whatever
+ * follows: "2 tbsp olive oil" → "29.6 ml olive oil".
+ *
+ * Cook Mode stores ingredient chips as pre-rendered display strings rather than
+ * structured amounts (see StepIngredientSchema), so converting them means
+ * parsing the text back apart. Anything that doesn't parse — unitless amounts
+ * ("2 large eggs"), ambiguous units ("a pinch of salt"), or text that doesn't
+ * start with a quantity — is returned byte-for-byte unchanged.
+ */
+export function convertLeadingAmount(text: string, system: MeasurementSystem): string {
+  const raw = (text ?? '').trim();
+  if (!raw) return text;
+
+  const parsed = parseQuantityAndUnit(raw);
+  if (!parsed) return text;
+
+  const amountOnly = raw.slice(0, raw.length - parsed.remainder.length).trim();
+  const converted = convertAmount(amountOnly, system);
+
+  // convertAmount passes through when no conversion applies (already in the
+  // target system, ambiguous unit) — returning `text` keeps the original
+  // spacing rather than rebuilding an identical string.
+  if (converted === amountOnly) return text;
+
+  return parsed.remainder ? `${converted} ${parsed.remainder}` : converted;
+}
+
+/**
+ * Convert every temperature in a free-text string: "Preheat oven to 425°F" →
+ * "Preheat oven to 218°C".
+ *
+ * Deliberately requires a degree symbol or the word "degrees". A bare trailing
+ * letter ("2 C flour") is far more likely to be a cup abbreviation than a
+ * Celsius reading, and mangling a prep label is worse than leaving it alone.
+ */
+export function convertTemperatures(text: string, system: MeasurementSystem): string {
+  if (!text) return text;
+
+  return text.replace(
+    /(\d+(?:\.\d+)?)\s*(?:°\s*|\s*degrees?\s+)([FC])\b/gi,
+    (whole, value: string, unit: string) => {
+      const numeric = parseFloat(value);
+      if (!Number.isFinite(numeric)) return whole;
+      const from = unit.toUpperCase();
+      if (from === 'F' && system === 'metric') {
+        return `${Math.round(((numeric - 32) * 5) / 9)}°C`;
+      }
+      if (from === 'C' && system === 'imperial') {
+        return `${Math.round((numeric * 9) / 5 + 32)}°F`;
+      }
+      return whole;
+    },
+  );
 }
 
 function parseQuantity(s: string): number | null {
