@@ -10,11 +10,12 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  useColorScheme,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AffiliateCard } from '../../components/AffiliateCard';
-import { Button } from '../../components/Button';
+import { Button, type ButtonProps } from '../../components/Button';
 import { IconButton } from '../../components/IconButton';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
@@ -27,7 +28,75 @@ import {
 } from '../../data/cooks';
 import { useRecipeDetail } from '../../data/hooks';
 import type { MainStackParamList } from '../../navigation/types';
+import type { ColorToken } from '../../theme';
 import { colors, radii, shadows, spacing } from '../../theme';
+
+
+/**
+ * Post-Cook follows system appearance, mirroring Cook Mode's light variant so
+ * finishing a cook doesn't flash a different surface than the one just used.
+ *
+ * Light values are chosen for contrast, not symmetry: dark mode's muted
+ * secondary text (`creamMuted`, 45% cream on Pine) has no compliant analog on
+ * Cream — `inkMuted` lands near 2.3:1 — so light mode uses Olive Dark (6.72:1
+ * on Cream) for secondary text and for the unfilled stars, which as 32pt
+ * non-text UI still need 3:1.
+ */
+type PostCookTheme = {
+  background: string;
+  statusBarStyle: 'light' | 'dark';
+  closeTint: ColorToken;
+  headingColor: ColorToken;
+  secondaryColor: ColorToken;
+  sectionLabelColor: ColorToken;
+  /** Unfilled star + notes placeholder. Filled stars are Terracotta in both. */
+  mutedIcon: string;
+  celebrationBg: string;
+  notesBg: string;
+  notesBorder: string;
+  notesText: string;
+  cardTheme: 'light' | 'dark';
+  barBorder: string;
+  // Same rule as Cook Mode (MESA-014): `cookPrimary` is a Cream fill built for
+  // Pine, so on a Cream background it would render invisible.
+  primaryButtonVariant: ButtonProps['variant'];
+};
+
+const POST_COOK_THEMES: Record<'dark' | 'light', PostCookTheme> = {
+  dark: {
+    background: colors.pine,
+    statusBarStyle: 'light',
+    closeTint: 'cream',
+    headingColor: 'cream',
+    secondaryColor: 'creamMuted',
+    sectionLabelColor: 'oat',
+    mutedIcon: colors.creamMuted,
+    celebrationBg: colors.cream,
+    notesBg: colors.pine,
+    notesBorder: 'rgba(233, 221, 207, 0.2)',
+    notesText: colors.cream,
+    cardTheme: 'dark',
+    barBorder: 'rgba(247, 242, 234, 0.2)',
+    primaryButtonVariant: 'cookPrimary',
+  },
+  light: {
+    background: colors.cream,
+    statusBarStyle: 'dark',
+    closeTint: 'oliveDark',
+    headingColor: 'ink',
+    secondaryColor: 'oliveDark',
+    sectionLabelColor: 'oliveDark',
+    mutedIcon: colors.oliveDark,
+    // Oat keeps the badge visible against Cream; the check stays Terracotta.
+    celebrationBg: colors.oat,
+    notesBg: colors.oat,
+    notesBorder: 'rgba(31, 28, 25, 0.1)',
+    notesText: colors.ink,
+    cardTheme: 'light',
+    barBorder: 'rgba(31, 28, 25, 0.1)',
+    primaryButtonVariant: 'primary',
+  },
+};
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, 'PostCook'>;
@@ -54,6 +123,12 @@ export function PostCookScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { recipeId, cookId } = route.params;
+
+  // System appearance only — Post-Cook has no in-screen toggle, and Cook Mode's
+  // manual override lives in that screen's state and doesn't survive the
+  // navigation here (see flags).
+  const systemScheme = useColorScheme();
+  const tc = POST_COOK_THEMES[systemScheme === 'light' ? 'light' : 'dark'];
 
   const { data: recipe, loading } = useRecipeDetail(recipeId);
 
@@ -100,7 +175,7 @@ export function PostCookScreen() {
   }, [cookId]);
 
   if (loading || !recipe) {
-    return <View style={{ flex: 1, backgroundColor: colors.pine }} />;
+    return <View style={{ flex: 1, backgroundColor: tc.background }} />;
   }
 
   const displayedTools = recipe.tools.slice(0, 2);
@@ -153,14 +228,14 @@ export function PostCookScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
+    <View style={[styles.root, { backgroundColor: tc.background }]}>
+      <StatusBar style={tc.statusBarStyle} />
 
       {/* ── Close button — fixed above scroll ────────────────────────── */}
       <View style={[styles.closeRow, { paddingTop: insets.top + spacing.sm }]}>
         <IconButton
           icon={X}
-          tint="cream"
+          tint={tc.closeTint}
           size="md"
           onPress={handleDismiss}
           accessibilityLabel="Close without saving"
@@ -185,7 +260,7 @@ export function PostCookScreen() {
 
         {/* ── Celebration mark ───────────────────────────────────────── */}
         <View style={styles.centerRow}>
-          <View style={styles.celebrationMark}>
+          <View style={[styles.celebrationMark, { backgroundColor: tc.celebrationBg }]}>
             <Check size={28} color={colors.terracotta} strokeWidth={2} />
           </View>
         </View>
@@ -193,14 +268,14 @@ export function PostCookScreen() {
         <View style={{ height: spacing.lg }} />
 
         {/* ── Celebration text ───────────────────────────────────────── */}
-        <Text role="display" color="cream" align="center">{heroTitle}</Text>
+        <Text role="display" color={tc.headingColor} align="center">{heroTitle}</Text>
         <View style={{ height: spacing.xs }} />
-        <Text role="caption" color="creamMuted" align="center">{recipe.title}</Text>
+        <Text role="caption" color={tc.secondaryColor} align="center">{recipe.title}</Text>
 
         {isRecookWithRating && lastCook && (
           <>
             <View style={{ height: spacing.xs }} />
-            <Text role="caption" color="creamMuted" align="center">
+            <Text role="caption" color={tc.secondaryColor} align="center">
               Last rated {formatRelativeDate(lastCook.completedAt)}
             </Text>
           </>
@@ -223,7 +298,7 @@ export function PostCookScreen() {
                 >
                   <Star
                     size={32}
-                    color={filled ? colors.terracotta : colors.creamMuted}
+                    color={filled ? colors.terracotta : tc.mutedIcon}
                     fill={filled ? colors.terracotta : 'none'}
                     strokeWidth={1.5}
                   />
@@ -234,7 +309,7 @@ export function PostCookScreen() {
         </View>
 
         <View style={{ height: spacing.sm }} />
-        <Text role="caption" color="creamMuted" align="center">How did it turn out?</Text>
+        <Text role="caption" color={tc.secondaryColor} align="center">How did it turn out?</Text>
 
         <View style={{ height: spacing.xl }} />
 
@@ -244,9 +319,12 @@ export function PostCookScreen() {
             value={notes}
             onChangeText={setNotes}
             placeholder={notesPlaceholder}
-            placeholderTextColor={colors.creamMuted}
+            placeholderTextColor={tc.mutedIcon}
             multiline
-            style={styles.notesInput}
+            style={[
+              styles.notesInput,
+              { backgroundColor: tc.notesBg, borderColor: tc.notesBorder, color: tc.notesText },
+            ]}
             textAlignVertical="top"
             accessibilityLabel="Cooking notes"
           />
@@ -258,7 +336,7 @@ export function PostCookScreen() {
         {displayedTools.length > 0 && (
           <>
             <View style={styles.paddingH}>
-              <SectionLabel color="oat">USED IN THIS RECIPE</SectionLabel>
+              <SectionLabel color={tc.sectionLabelColor}>USED IN THIS RECIPE</SectionLabel>
             </View>
             <View style={{ height: spacing.md }} />
             <ScrollView
@@ -273,7 +351,7 @@ export function PostCookScreen() {
                     productName={tool.name}
                     price={tool.price}
                     partner={tool.partner}
-                    theme="dark"
+                    theme={tc.cardTheme}
                     toolId={tool.id}
                     recipeId={recipe.id}
                     affiliateUrl={tool.affiliateUrl}
@@ -288,7 +366,7 @@ export function PostCookScreen() {
         )}
 
         {/* ── Affiliate disclosure ───────────────────────────────────── */}
-        <Text role="caption" color="creamMuted" align="center">
+        <Text role="caption" color={tc.secondaryColor} align="center">
           Affiliate links help keep Mesa ad-free.
         </Text>
       </ScrollView>
@@ -298,10 +376,14 @@ export function PostCookScreen() {
         <View
           style={[
             styles.saveBar,
-            { paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg },
+            {
+              paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.lg,
+              backgroundColor: tc.background,
+              borderTopColor: tc.barBorder,
+            },
           ]}
         >
-          <Button variant="cookPrimary" label="Save" onPress={handleSave} />
+          <Button variant={tc.primaryButtonVariant} label="Save" onPress={handleSave} />
         </View>
       )}
     </View>
@@ -311,7 +393,6 @@ export function PostCookScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.pine,
   },
   // ── Close button ────────────────────────────────────────────────────
   closeRow: {
@@ -336,7 +417,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.card,
@@ -348,13 +428,10 @@ const styles = StyleSheet.create({
   },
   // ── Notes ───────────────────────────────────────────────────────────
   notesInput: {
-    backgroundColor: colors.pine,
     borderWidth: 1,
-    borderColor: 'rgba(233, 221, 207, 0.2)',
     borderRadius: radii.md,
     padding: spacing.base,
     minHeight: 100,
-    color: colors.cream,
     fontFamily: 'Inter_400Regular',
     fontSize: 16,
     lineHeight: 26,
@@ -377,8 +454,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: spacing.base,
     paddingTop: spacing.md,
-    backgroundColor: colors.pine,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(247, 242, 234, 0.2)',
   },
 });
