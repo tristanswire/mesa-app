@@ -198,10 +198,6 @@ export function ProfileScreen() {
         <View style={{ height: spacing.md }} />
         <View style={styles.paddingH}>
           <SettingRow
-            label="Manage subscription"
-            onPress={() => { /* TODO Phase 3: subscription decision */ }}
-          />
-          <SettingRow
             label="Contact support"
             onPress={() => {
               const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Mesa support')}`;
@@ -212,15 +208,6 @@ export function ProfileScreen() {
             isLast
           />
         </View>
-
-        {/* ── Sign out ─────────────────────────────────────────────── */}
-        <View style={{ height: spacing.xl }} />
-        <Pressable
-          onPress={() => { /* TODO Phase 3: sign out via Supabase */ }}
-          style={({ pressed }) => [styles.centerLink, pressed && { opacity: 0.6 }]}
-        >
-          <Text role="body" color="terracotta" align="center">Sign out</Text>
-        </Pressable>
 
         {/* ── Debug links — dev builds only; route stays registered ── */}
         {__DEV__ && (
