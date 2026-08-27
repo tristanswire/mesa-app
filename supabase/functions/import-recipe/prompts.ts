@@ -9,6 +9,7 @@ JSON shape:
   "servings": number,
   "tag": "Weeknight" | "Quick" | "Dessert" | "Side" | "Breakfast" | "Slow-cooker" | "Vegetarian" | null,
   "category": "breakfast" | "lunch" | "dinner" | "dessert" | "snack" | "drink" | "side" | "appetizer" | "other",
+  "tags": ["italian", "one-pan"],
   "imageUrl": "https://..." or null,
   "ingredients": [{ "amount": "2 tbsp", "name": "olive oil", "prep": "minced" or null }],
   "steps": [{ "segments": [...], "ingredients": [...], "timers": [...] }],
@@ -43,7 +44,16 @@ CONSTRAINTS:
 - Maximum 3 tools
 - Tag must be from the enum above; null if no clean fit
 - Category must be exactly one of the lowercase values listed; default to "other" if genuinely ambiguous, never null, never invented
+- Tags must follow the TAG SELECTION rules below; an empty array is acceptable
 - Each step's text segments should be concise — extract the action, omit narrative
+
+TAG SELECTION:
+- 1-4 short lowercase tags describing the dish. Fewer is fine; an empty array is better than a vague tag.
+- Lead with the cuisine when there is a clear one: "italian", "mexican", "thai", "japanese", "indian", "french", "chinese", "greek", "korean", "vietnamese", "spanish", "mediterranean", "middle eastern", "american", "cajun", "caribbean".
+- Remaining tags describe attributes a cook would actually filter by: "one-pan", "vegetarian", "vegan", "gluten-free", "make-ahead", "no-bake", "grilled", "slow-cooker", "spicy", "comfort food", "meal prep", "kid-friendly".
+- Do NOT emit meal types ("breakfast", "lunch", "dinner", "dessert", "snack", "side", "appetizer", "drink") — the "category" field already carries that, and a tag repeating it is the same fact twice.
+- Do NOT emit cooking times, durations, or speed words ("quick", "30 minutes") — those are computed from "duration" separately.
+- Each tag must be 24 characters or fewer, lowercase, no punctuation beyond an internal hyphen.
 
 PREP ITEM EXTRACTION:
 Prep items are anything the cook can finish BEFORE active stovetop/oven work begins. Include all that apply, deduped:
@@ -88,6 +98,7 @@ INPUT shape:
 OUTPUT shape:
 {
   "category": "dinner",
+  "tags": ["italian", "one-pan"],
   "tools": [{ "name": "Cast Iron Skillet", "price": "$45", "partner": "Amazon" }],
   "steps": [
     {
@@ -110,6 +121,14 @@ CATEGORY SELECTION:
 - Base the choice on the title and ingredients, with meal-type keywords in the recipe taking priority.
 - Choose "other" only when genuinely ambiguous (e.g. a sauce, a marinade, a generic dough).
 - Never invent a value outside the list; never output null. If unsure, output "other".
+
+TAG SELECTION:
+- 1-4 short lowercase tags describing the dish. Fewer is fine; an empty array is better than a vague tag.
+- Lead with the cuisine when there is a clear one: "italian", "mexican", "thai", "japanese", "indian", "french", "chinese", "greek", "korean", "vietnamese", "spanish", "mediterranean", "middle eastern", "american", "cajun", "caribbean".
+- Remaining tags describe attributes a cook would actually filter by: "one-pan", "vegetarian", "vegan", "gluten-free", "make-ahead", "no-bake", "grilled", "slow-cooker", "spicy", "comfort food", "meal prep", "kid-friendly".
+- Do NOT emit meal types ("breakfast", "lunch", "dinner", "dessert", "snack", "side", "appetizer", "drink") — the "category" field already carries that, and a tag repeating it is the same fact twice.
+- Do NOT emit cooking times, durations, or speed words ("quick", "30 minutes") — those are computed from "duration" separately.
+- Each tag must be 24 characters or fewer, lowercase, no punctuation beyond an internal hyphen.
 
 TOOL EXTRACTION:
 Suggest the specialty equipment this recipe genuinely needs — the pieces a cook might not already own. The source page rarely lists equipment, so infer it from the title, ingredients, and steps.
@@ -149,6 +168,7 @@ const RECIPE_JSON_CONTRACT = `JSON shape:
   "servings": number,
   "tag": "Weeknight" | "Quick" | "Dessert" | "Side" | "Breakfast" | "Slow-cooker" | "Vegetarian" | null,
   "category": "breakfast" | "lunch" | "dinner" | "dessert" | "snack" | "drink" | "side" | "appetizer" | "other",
+  "tags": ["italian", "one-pan"],
   "imageUrl": null,
   "ingredients": [{ "amount": "2 tbsp", "name": "olive oil", "prep": "minced" or null }],
   "steps": [{ "segments": [...], "ingredients": [...], "timers": [...] }],
@@ -157,6 +177,15 @@ const RECIPE_JSON_CONTRACT = `JSON shape:
 }
 
 "imageUrl" must always be null — there is no source image URL for this input.
+
+TAG SELECTION:
+- 1-4 short lowercase tags describing the dish. Fewer is fine; an empty array is better than a vague tag.
+- Lead with the cuisine when there is a clear one: "italian", "mexican", "thai", "japanese", "indian", "french", "chinese", "greek", "korean", "vietnamese", "spanish", "mediterranean", "middle eastern", "american", "cajun", "caribbean".
+- Remaining tags describe attributes a cook would actually filter by: "one-pan", "vegetarian", "vegan", "gluten-free", "make-ahead", "no-bake", "grilled", "slow-cooker", "spicy", "comfort food", "meal prep", "kid-friendly".
+- Do NOT emit meal types ("breakfast", "lunch", "dinner", "dessert", "snack", "side", "appetizer", "drink") — the "category" field already carries that, and a tag repeating it is the same fact twice.
+- Do NOT emit cooking times, durations, or speed words ("quick", "30 minutes") — those are computed from "duration" separately.
+- Each tag must be 24 characters or fewer, lowercase, no punctuation beyond an internal hyphen.
+
 
 Step segments concatenate to the full instruction:
 - {"type":"text","content":"Heat "}

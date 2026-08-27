@@ -3,6 +3,7 @@ import type { ParsedRecipe, VisionMediaType } from './types.ts';
 import { FULL_PARSE_PROMPT, PHOTO_PARSE_PROMPT, TEXT_PARSE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
 import { stripParentheticals } from './text.ts';
+import { normalizeTags } from './tags.ts';
 import { normalizeTools } from './tools.ts';
 
 const PARSE_FAILED = 'Could not parse the recipe from this page.';
@@ -176,8 +177,16 @@ async function runParse(
 
   const cleaned = stripIngredientParentheticals(parsed);
   // Model output is untrusted: a null price/partner would fail the client's
-  // NOT NULL tools insert and sink an otherwise-good import.
-  return { kind: 'recipe', recipe: { ...cleaned, tools: normalizeTools(cleaned.tools) } };
+  // NOT NULL tools insert and sink an otherwise-good import. Tags get the same
+  // treatment, plus the time bucket computed from the duration above.
+  return {
+    kind: 'recipe',
+    recipe: {
+      ...cleaned,
+      tags: normalizeTags(cleaned.tags, cleaned.duration),
+      tools: normalizeTools(cleaned.tools),
+    },
+  };
 }
 
 /**

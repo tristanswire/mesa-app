@@ -7,6 +7,12 @@ export type ParsedRecipe = {
   // AI-suggested meal category. Untrusted — caller validates against the
   // allowed set before persisting (see normalizeCategory in src/data/recipes.ts).
   category?: string | null;
+  /**
+   * Auto-generated descriptive tags: cuisine, attributes, and a computed time
+   * bucket. Normalized server-side (see tags.ts) — lowercase, deduped, and
+   * never repeating the meal type that `category` already carries.
+   */
+  tags: string[];
   imageUrl: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];

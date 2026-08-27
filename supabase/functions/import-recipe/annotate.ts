@@ -3,10 +3,13 @@ import type { ParsedRecipe, ParsedStep, ParsedTool } from './types.ts';
 import type { PartialRecipe } from './jsonld.ts';
 import { ANNOTATE_PROMPT } from './prompts.ts';
 import { extractJson } from './extractJson.ts';
+import { normalizeTags } from './tags.ts';
 import { mergeTools, normalizeTools } from './tools.ts';
 
 type AnnotateResponse = {
   category?: string | null;
+  /** Model-suggested cuisine and attribute tags; normalized before storing. */
+  tags?: unknown;
   /** Model-suggested equipment. Source pages almost never declare their own. */
   tools?: ParsedTool[];
   steps: ParsedStep[];
@@ -88,6 +91,7 @@ export async function annotateRecipe(
     // Untrusted: model may return a value outside the allowed list, or omit
     // the field. Client validates via normalizeCategory before persisting.
     category: typeof parsed.category === 'string' ? parsed.category : null,
+    tags: normalizeTags(parsed.tags, partial.duration),
     imageUrl: partial.imageUrl,
     ingredients: cleanIngredients,
     steps: parsed.steps,
@@ -108,6 +112,9 @@ export function buildFallbackRecipe(partial: PartialRecipe): ParsedRecipe {
     servings: partial.servings,
     tag: partial.tag,
     category: null,
+    // Annotation failed, so there are no model tags — the time bucket is
+    // computed from the duration regardless, so even this path is tagged.
+    tags: normalizeTags(undefined, partial.duration),
     imageUrl: partial.imageUrl,
     ingredients: cleanIngredients,
     steps: partial.plainSteps.map((s) => ({
