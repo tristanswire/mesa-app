@@ -13,7 +13,7 @@ import { Pill } from '../../components/Pill';
 import { RecipeCard } from '../../components/RecipeCard';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
-import { useRecipesList } from '../../data/hooks';
+import { useRecipeSearch, useRecipesList, useRecipeTagIndex } from '../../data/hooks';
 import {
   RECIPE_CATEGORIES,
   RECIPE_CATEGORY_LABELS,
@@ -45,6 +45,10 @@ type HeaderProps = {
   onSearchChange: (text: string) => void;
   activeFilter: FilterValue;
   onFilterPress: (filter: FilterValue) => void;
+  /** Auto-tags present in the library, most common first. Empty hides the row. */
+  tags: string[];
+  activeTag: string | null;
+  onTagPress: (tag: string) => void;
 };
 
 function ScreenHeader({
@@ -52,6 +56,9 @@ function ScreenHeader({
   onSearchChange,
   activeFilter,
   onFilterPress,
+  tags,
+  activeTag,
+  onTagPress,
 }: HeaderProps) {
   return (
     <View>
@@ -81,6 +88,32 @@ function ScreenHeader({
           />
         ))}
       </ScrollView>
+
+      {/* Auto-tag row. Only recipes imported since tags shipped have any, so
+          this stays hidden for an untagged library rather than showing an
+          empty rail. Tapping the active tag clears it — there is no "All"
+          pill here because the category row above already owns that idiom. */}
+      {tags.length > 0 && (
+        <>
+          <View style={{ height: spacing.sm }} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.pillsScroll}
+            contentContainerStyle={styles.pillsContent}
+          >
+            {tags.map((tag) => (
+              <Pill
+                key={tag}
+                label={tag}
+                active={activeTag === tag}
+                onPress={() => onTagPress(tag)}
+              />
+            ))}
+          </ScrollView>
+        </>
+      )}
+
       {/* Gap between filter pills and card grid */}
       <View style={{ height: spacing.lg }} />
     </View>
@@ -110,25 +143,58 @@ export function RecipesScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterValue>('All');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: recipes, ready } = useRecipesList();
+  const tagIndex = useRecipeTagIndex();
+  // null means "nothing typed"; an empty Map means "searched, matched nothing".
+  const searchResults = useRecipeSearch(searchQuery);
 
   const handleFilterPress = async (filter: FilterValue) => {
     await Haptics.selectionAsync();
     setActiveFilter(filter);
   };
 
-  // Filter pipeline: category pill (skipped when 'All'), then case-insensitive
-  // title substring match. Search-by-ingredient is intentionally deferred —
-  // would require joining the ingredients table in useRecipesList, and title
-  // match covers the common case.
-  const filteredRecipes = recipes.filter((r) => {
+  // Tapping the active tag clears it, so the row needs no reset pill.
+  const handleTagPress = async (tag: string) => {
+    await Haptics.selectionAsync();
+    setActiveTag((current) => (current === tag ? null : tag));
+  };
+
+  // Only tags the visible library actually uses, ordered by how many recipes
+  // carry them — the useful ones surface without a rail of one-offs pushing
+  // them off-screen.
+  const tagOptions = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const recipe of recipes) {
+      for (const tag of tagIndex.get(recipe.id) ?? []) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([tag]) => tag);
+  }, [recipes, tagIndex]);
+
+  // Filter pipeline: category pill, then tag pill, then search. Search runs in
+  // SQL across title, tags, ingredient names and cook notes (see
+  // searchRecipeIds) rather than over the in-memory titles this screen holds.
+  const visibleRecipes = recipes.filter((r) => {
     if (activeFilter !== 'All' && r.category !== activeFilter) return false;
-    const q = searchQuery.trim().toLowerCase();
-    if (q && !r.title.toLowerCase().includes(q)) return false;
+    if (activeTag && !(tagIndex.get(r.id) ?? []).includes(activeTag)) return false;
+    if (searchResults && !searchResults.has(r.id)) return false;
     return true;
   });
+
+  // Ranked order only while searching — title hits first, then tag, ingredient,
+  // notes. Array.sort is stable, so recipes tied on rank keep recency order,
+  // which is what the unsearched list is already sorted by.
+  const filteredRecipes = searchResults
+    ? [...visibleRecipes].sort(
+        (a, b) => (searchResults.get(a.id) ?? 0) - (searchResults.get(b.id) ?? 0),
+      )
+    : visibleRecipes;
 
   const showSkeleton = !ready;
   const showEmptyState = ready && recipes.length === 0;
@@ -168,6 +234,9 @@ export function RecipesScreen() {
               onSearchChange={setSearchQuery}
               activeFilter={activeFilter}
               onFilterPress={handleFilterPress}
+              tags={tagOptions}
+              activeTag={activeTag}
+              onTagPress={handleTagPress}
             />
             <GridSkeleton />
           </ScrollView>
@@ -185,6 +254,9 @@ export function RecipesScreen() {
                 onSearchChange={setSearchQuery}
                 activeFilter={activeFilter}
                 onFilterPress={handleFilterPress}
+                tags={tagOptions}
+                activeTag={activeTag}
+                onTagPress={handleTagPress}
               />
               <EmptyState
                 icon={Bookmark}
@@ -207,13 +279,18 @@ export function RecipesScreen() {
                 onSearchChange={setSearchQuery}
                 activeFilter={activeFilter}
                 onFilterPress={handleFilterPress}
+                tags={tagOptions}
+                activeTag={activeTag}
+                onTagPress={handleTagPress}
               />
             }
             ListEmptyComponent={
               showNoMatches ? (
                 <View style={styles.noMatchesBlock}>
                   <Text role="body" color="oliveDark" align="center">
-                    No recipes match this filter.
+                    {searchQuery.trim()
+                      ? 'No recipes match that search.'
+                      : 'No recipes match this filter.'}
                   </Text>
                 </View>
               ) : null

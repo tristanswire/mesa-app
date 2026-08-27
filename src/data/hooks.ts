@@ -1,14 +1,20 @@
 import { and, count, desc, eq, gte, isNotNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { db } from '../db/client';
-import { cooks, recipes } from '../db/schema';
+import { cooks, recipes, recipeTags } from '../db/schema';
 import {
   getUserPreferences,
   hasCompletedOnboarding,
   type UserPreferences,
 } from './preferences';
-import { getRecipe, type RecipeDetail, type RecipeListItem } from './recipes';
+import {
+  getRecipe,
+  searchRecipeIds,
+  type RecipeDetail,
+  type RecipeListItem,
+  type SearchRank,
+} from './recipes';
 import { getCurrentUserId } from './user';
 
 // Sentinel that matches no real recipe — used while the current userId is loading
@@ -197,4 +203,77 @@ export function useOnboardingComplete() {
   }, [refresh]);
 
   return { complete, refresh };
+}
+
+/**
+ * Every recipe's tags, keyed by recipe id. Live, so a fresh import's tags show
+ * up in the filter row without a reload.
+ *
+ * Deliberately unscoped by user: callers only ever look up ids that came from
+ * useRecipesList, which is already user-scoped, so there is nothing to leak and
+ * a join here would buy only cost.
+ */
+export function useRecipeTagIndex(): Map<string, string[]> {
+  const query = db
+    .select({ recipeId: recipeTags.recipeId, tag: recipeTags.tag })
+    .from(recipeTags)
+    .orderBy(recipeTags.recipeId, recipeTags.orderIndex);
+
+  const { data } = useLiveQuery(query, []);
+
+  return useMemo(() => {
+    const index = new Map<string, string[]>();
+    for (const row of data ?? []) {
+      const existing = index.get(row.recipeId);
+      if (existing) existing.push(row.tag);
+      else index.set(row.recipeId, [row.tag]);
+    }
+    return index;
+  }, [data]);
+}
+
+/** Long enough to skip the intermediate states of a fast typist. */
+const SEARCH_DEBOUNCE_MS = 150;
+
+/**
+ * Ranked search results for `query`.
+ *
+ * Returns null for an empty query, meaning "no search applied" — distinct from
+ * an empty Map, which means "searched, matched nothing". The screen needs to
+ * tell those apart to decide between showing everything and showing none.
+ *
+ * Previous results are held while a new query debounces rather than cleared, so
+ * the grid doesn't flash the full library between keystrokes.
+ */
+export function useRecipeSearch(query: string): Map<string, SearchRank> | null {
+  const [results, setResults] = useState<Map<string, SearchRank> | null>(null);
+
+  useEffect(() => {
+    const term = query.trim();
+    if (!term) {
+      setResults(null);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      searchRecipeIds(term)
+        .then((found) => {
+          if (!cancelled) setResults(found);
+        })
+        .catch((e) => {
+          console.error('[useRecipeSearch] search failed', e);
+          // An empty Map, not null — a failed search shows no matches rather
+          // than silently showing the whole library as if nothing was typed.
+          if (!cancelled) setResults(new Map());
+        });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [query]);
+
+  return results;
 }

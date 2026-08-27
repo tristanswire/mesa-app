@@ -9,6 +9,10 @@ export type ParsedRecipe = {
   // AI-suggested meal category. Untrusted — caller must run through
   // normalizeCategory() before persisting. May be null/undefined/garbage.
   category?: string | null;
+  // Auto-generated descriptive tags: cuisine, attributes, and a computed time
+  // bucket. Normalized server-side; older responses may omit the field
+  // entirely, so callers must tolerate undefined.
+  tags?: string[];
   imageUrl: string | null;
   ingredients: ParsedIngredient[];
   steps: ParsedStep[];

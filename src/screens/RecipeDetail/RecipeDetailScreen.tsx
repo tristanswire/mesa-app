@@ -349,6 +349,18 @@ export function RecipeDetailScreen() {
           <Text role="caption" color="oliveDark">
             {recipe.duration} · {servingsLabel}{recipe.tag ? ` · ${recipe.tag}` : ''}
           </Text>
+          {recipe.tags.length > 0 && (
+            <>
+              <View style={{ height: spacing.sm }} />
+              <View style={styles.tagRow}>
+                {recipe.tags.map((tag) => (
+                  <View key={tag} style={styles.tagChip}>
+                    <Text role="caption" color="oliveDark">{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
           <View style={{ height: spacing.md }} />
           <ServingScaleControl
             baseServings={baseServings}
@@ -558,6 +570,19 @@ const styles = StyleSheet.create({
   },
   ctaItem: {
     flex: 1,
+  },
+  // Auto-generated tags: descriptive, not interactive. Tapping to filter lives
+  // on the Recipes screen, which owns the grid these would narrow.
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  tagChip: {
+    backgroundColor: colors.oat,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
   },
   categoryRow: {
     flexDirection: 'row',

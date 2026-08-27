@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { FunctionsFetchError } from '@supabase/supabase-js';
 import { db } from '../db/client';
-import { ingredients, prepItems, recipes, steps, tools } from '../db/schema';
+import { ingredients, prepItems, recipes, recipeTags, steps, tools } from '../db/schema';
 import { supabase } from '../supabase/client';
 import type { ImportResponse, ParsedRecipe } from '../supabase/sharedTypes';
 import { normalizeCategory } from './recipes';
@@ -115,6 +115,18 @@ async function saveRecipeToLocalDB(
       amount: ing.amount,
       name: ing.name,
       prep: ing.prep,
+      orderIndex: i,
+    });
+  }
+
+  // Tags arrive normalized from the server (lowercase, deduped, meal type
+  // excluded). A recipe imported before tags existed simply has no rows here.
+  const parsedTags = Array.isArray(parsed.tags) ? parsed.tags : [];
+  for (let i = 0; i < parsedTags.length; i++) {
+    await db.insert(recipeTags).values({
+      id: `${recipeId}_tag_${i}`,
+      recipeId,
+      tag: parsedTags[i],
       orderIndex: i,
     });
   }

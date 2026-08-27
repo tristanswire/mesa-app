@@ -6,6 +6,7 @@ import {
   ingredients,
   prepItems,
   recipes,
+  recipeTags,
   steps,
   tools,
   userPreferences,
@@ -24,9 +25,14 @@ export const recipesRelations = relations(recipes, ({ one, many }) => ({
   ingredients: many(ingredients),
   steps: many(steps),
   prepItems: many(prepItems),
+  recipeTags: many(recipeTags),
   tools: many(tools),
   cooks: many(cooks),
   clicks: many(clicks),
+}));
+
+export const recipeTagsRelations = relations(recipeTags, ({ one }) => ({
+  recipe: one(recipes, { fields: [recipeTags.recipeId], references: [recipes.id] }),
 }));
 
 export const ingredientsRelations = relations(ingredients, ({ one }) => ({

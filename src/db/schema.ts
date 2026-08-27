@@ -41,6 +41,25 @@ export const ingredients = sqliteTable('ingredients', {
   orderIndex: integer('order_index').notNull(),
 });
 
+/**
+ * Auto-generated tags from import: cuisine, descriptive attributes, and a
+ * computed time bucket. A separate table rather than a JSON column on
+ * `recipes` so search and filtering can join and index it, matching how
+ * ingredients and tools are already stored.
+ *
+ * Meal type is deliberately absent — that lives on `recipes.category`, which
+ * the user can edit. Recipes imported before this table existed simply have no
+ * rows here and show no tags; there is no backfill.
+ */
+export const recipeTags = sqliteTable('recipe_tags', {
+  id: text('id').primaryKey(),
+  recipeId: text('recipe_id')
+    .notNull()
+    .references(() => recipes.id, { onDelete: 'cascade' }),
+  tag: text('tag').notNull(),
+  orderIndex: integer('order_index').notNull(),
+});
+
 export const steps = sqliteTable('steps', {
   id: text('id').primaryKey(),
   recipeId: text('recipe_id')

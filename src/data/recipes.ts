@@ -1,6 +1,14 @@
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { db } from '../db/client';
 import { deleteRecipePhotoFile, saveRecipePhoto, sweepOrphanPhotos } from '../lib/recipePhoto';
+import {
+  buildLikePattern,
+  LIKE_ESCAPE,
+  rankMatches,
+  SEARCH_RANK,
+  type SearchRank,
+} from '../lib/search';
 import {
   clicks,
   cookPrepState,
@@ -8,6 +16,7 @@ import {
   ingredients,
   prepItems,
   recipes,
+  recipeTags,
   steps,
   tools,
 } from '../db/schema';
@@ -70,6 +79,8 @@ export type RecipeDetail = {
   servings: number;
   tag: string | null;
   category: RecipeCategory | null;
+  /** Auto-generated at import: cuisine, attributes, and a time bucket. */
+  tags: string[];
   tintKey: 'terracotta' | 'olive' | null;
   imageUrl: string | null;
   // Null for manual/photo recipes — the detail screen hides "View Original"
@@ -209,6 +220,7 @@ export async function deleteRecipe(recipeId: string): Promise<void> {
     tx.delete(prepItems).where(eq(prepItems.recipeId, recipeId)).run();
     tx.delete(steps).where(eq(steps.recipeId, recipeId)).run();
     tx.delete(ingredients).where(eq(ingredients.recipeId, recipeId)).run();
+    tx.delete(recipeTags).where(eq(recipeTags.recipeId, recipeId)).run();
     tx.delete(recipes)
       .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)))
       .run();
@@ -226,6 +238,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
       ingredients: { orderBy: (ing, { asc }) => [asc(ing.orderIndex)] },
       steps: { orderBy: (s, { asc }) => [asc(s.orderIndex)] },
       prepItems: { orderBy: (p, { asc }) => [asc(p.orderIndex)] },
+      recipeTags: { orderBy: (t, { asc }) => [asc(t.orderIndex)] },
       tools: { orderBy: (t, { asc }) => [asc(t.orderIndex)] },
     },
   });
@@ -247,6 +260,7 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
     servings: result.servings,
     tag: result.tag,
     category: normalizeCategory(result.category),
+    tags: result.recipeTags.map((t) => t.tag),
     tintKey: result.tintKey as 'terracotta' | 'olive' | null,
     imageUrl: result.imageUrl,
     sourceUrl: result.sourceUrl,
@@ -288,4 +302,65 @@ export async function sweepOrphanRecipePhotos(): Promise<number> {
     console.log(`[recipes] removed ${removed} orphaned photo${removed === 1 ? '' : 's'}`);
   }
   return removed;
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+
+// Ranking and pattern-building live in lib/search.ts so they can be tested
+// without a database; this half is only the queries.
+export { SEARCH_RANK, type SearchRank } from '../lib/search';
+
+/**
+ * Recipe ids matching `query` across title, tags, ingredient names, and the
+ * notes left after a cook — mapped to the rank of the best field that matched.
+ *
+ * Four narrow queries rather than one join. Joining ingredients and cooks onto
+ * recipes multiplies rows per recipe and needs a DISTINCT plus a per-field CASE
+ * to rank; merging four small id lists in code says the same thing plainly and
+ * is comfortably fast at the scale of a personal library. The four run
+ * concurrently, so the round trip is the slowest one rather than their sum.
+ *
+ * Matching is case-insensitive and substring-based on both sides, so "chick"
+ * finds "Chicken Piccata".
+ */
+export async function searchRecipeIds(query: string): Promise<Map<string, SearchRank>> {
+  const pattern = buildLikePattern(query);
+  if (pattern === null) return new Map();
+
+  const userId = await getCurrentUserId();
+  // The escape character is a literal, not a bound parameter: SQLite wants a
+  // single-character expression there and a placeholder is needlessly close to
+  // the edge of what it accepts. LIKE_ESCAPE is our own constant, never user
+  // input, so raw interpolation carries no injection risk.
+  const escapeClause = sql.raw(`ESCAPE '${LIKE_ESCAPE}'`);
+  const matches = (column: AnySQLiteColumn) =>
+    sql`lower(${column}) LIKE ${pattern} ${escapeClause}`;
+
+  const [titleRows, tagRows, ingredientRows, noteRows] = await Promise.all([
+    db
+      .select({ id: recipes.id })
+      .from(recipes)
+      .where(and(eq(recipes.userId, userId), matches(recipes.title))),
+    db
+      .selectDistinct({ id: recipeTags.recipeId })
+      .from(recipeTags)
+      .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
+      .where(and(eq(recipes.userId, userId), matches(recipeTags.tag))),
+    db
+      .selectDistinct({ id: ingredients.recipeId })
+      .from(ingredients)
+      .innerJoin(recipes, eq(ingredients.recipeId, recipes.id))
+      .where(and(eq(recipes.userId, userId), matches(ingredients.name))),
+    db
+      .selectDistinct({ id: cooks.recipeId })
+      .from(cooks)
+      .where(and(eq(cooks.userId, userId), isNotNull(cooks.notes), matches(cooks.notes))),
+  ]);
+
+  return rankMatches([
+    { ids: titleRows.map((r) => r.id), rank: SEARCH_RANK.title },
+    { ids: tagRows.map((r) => r.id), rank: SEARCH_RANK.tag },
+    { ids: ingredientRows.map((r) => r.id), rank: SEARCH_RANK.ingredient },
+    { ids: noteRows.map((r) => r.id), rank: SEARCH_RANK.note },
+  ]);
 }
