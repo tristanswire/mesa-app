@@ -10,9 +10,12 @@ export type MainStackParamList = {
   // e.g. RecipeDetail returning to the library after a delete.
   Tabs: NavigatorScreenParams<TabsParamList> | undefined;
   RecipeDetail: { recipeId: string };
-  PrepMode: { recipeId: string };
-  CookMode: { recipeId: string; stepIndex?: number };
-  PostCook: { recipeId: string; cookId: string };
+  // `scale` is the session-only serving multiplier set on Recipe Detail. It
+  // rides the navigation params through the cook flow and is never persisted;
+  // leaving the recipe drops it. Absent means 1x.
+  PrepMode: { recipeId: string; scale?: number };
+  CookMode: { recipeId: string; stepIndex?: number; scale?: number };
+  PostCook: { recipeId: string; cookId: string; scale?: number };
   Import: { prefilledUrl?: string } | undefined;
   ManualImport: undefined;
   Showcase: undefined;

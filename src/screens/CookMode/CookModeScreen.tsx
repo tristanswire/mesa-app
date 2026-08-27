@@ -63,6 +63,7 @@ export function CookModeScreen() {
     <CookModeView
       recipeId={route.params.recipeId}
       initialStepIndex={route.params.stepIndex}
+      scale={route.params.scale ?? 1}
       theme={theme}
       cookId={cookId}
       onToggleTheme={() => setOverride(theme === 'dark' ? 'light' : 'dark')}

@@ -6,7 +6,7 @@ import { Text } from '../../components/Text';
 import { TimerToken } from '../../components/TimerToken';
 import type { MeasurementSystem } from '../../data/preferences';
 import type { RecipeDetail } from '../../data/recipes';
-import { convertLeadingAmount } from '../../lib/units';
+import { convertLeadingAmount, scaleAmount } from '../../lib/units';
 import type { ColorToken } from '../../theme';
 import { spacing } from '../../theme';
 import { COOK_TEXT_MAX_FONT_MULTIPLIER } from './textSize';
@@ -36,17 +36,32 @@ export type CookStepPaneProps = {
   onTimerPress: (timerId: string, label: string, durationSeconds: number) => void;
   /** Chips are stored as display strings, so conversion happens at render. */
   system: MeasurementSystem;
+  /** Session-only serving multiplier; 1 means unscaled. */
+  scale: number;
 };
 
-export function stepToPlainText(step: RecipeStep, system: MeasurementSystem): string {
+/**
+ * A chip's stored display string ("2 tbsp olive oil") rendered for the current
+ * session: scaled first, then converted. That order matters — scaleAmount emits
+ * cooking fractions that convertLeadingAmount can read back, not the reverse.
+ */
+function displayChip(text: string, system: MeasurementSystem, scale: number): string {
+  return convertLeadingAmount(scaleAmount(text, scale), system);
+}
+
+export function stepToPlainText(
+  step: RecipeStep,
+  system: MeasurementSystem,
+  scale: number,
+): string {
   return step.segments
     .map((seg) => {
       if (seg.type === 'text') return seg.content;
       if (seg.type === 'ingredient') {
         const display = step.ingredients.find((x) => x.id === seg.ingredientId)?.display;
-        // Same conversion the chips get, so the NEXT preview can't disagree
+        // Same treatment the chips get, so the NEXT preview can't disagree
         // with the step it is previewing.
-        return display ? convertLeadingAmount(display, system) : '';
+        return display ? displayChip(display, system, scale) : '';
       }
       return step.timers.find((x) => x.id === seg.timerId)?.label ?? '';
     })
@@ -68,6 +83,7 @@ export function CookStepPane({
   timers,
   onTimerPress,
   system,
+  scale,
 }: CookStepPaneProps) {
   return (
     <ScrollView
@@ -113,7 +129,7 @@ export function CookStepPane({
             return [
               <IngredientChip
                 key={`ing-${segIdx}`}
-                label={ing ? convertLeadingAmount(ing.display, system) : ''}
+                label={ing ? displayChip(ing.display, system, scale) : ''}
                 theme={theme.chipTheme}
               />,
             ];
@@ -149,7 +165,7 @@ export function CookStepPane({
           <SectionLabel color={theme.sectionLabelColor}>NEXT</SectionLabel>
           <View style={{ height: spacing.sm }} />
           <Text role="cookModeBody" color={theme.nextPreviewColor} numberOfLines={2}>
-            {stepToPlainText(nextStep, system)}
+            {stepToPlainText(nextStep, system, scale)}
           </Text>
         </>
       ) : (

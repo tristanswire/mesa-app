@@ -39,8 +39,9 @@ import {
   type RecipeCategory,
 } from '../../data/recipes';
 import { captureRecipePhotoFile, type PhotoSource } from '../../lib/photoImport';
-import { convertAmount } from '../../lib/units';
+import { convertAmount, formatQuantity, scaleAmount } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
+import { ServingScaleControl } from './ServingScaleControl';
 import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -54,6 +55,10 @@ export function RecipeDetailScreen() {
 
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
   const [system, setSystem] = useState<MeasurementSystem>('imperial');
+  // Session-only serving multiplier. Lives in screen state and rides the
+  // navigation params into the cook flow — never written to the recipe. It
+  // resets when this screen unmounts, i.e. when the user leaves the recipe.
+  const [scale, setScale] = useState(1);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // Reset when the recipe id changes so a fresh load gets one fair shot at
@@ -241,6 +246,15 @@ export function RecipeDetailScreen() {
     : recipe.ingredients.slice(0, 4);
   const hasMoreIngredients = recipe.ingredients.length > 4;
   const showHeroPlaceholder = !imageUrl || heroImageFailed;
+  const baseServings = recipe.servings > 0 ? recipe.servings : 1;
+  const isScaled = scale !== 1;
+  const scaledServings = baseServings * scale;
+  const servingsLabel = `${formatQuantity(scaledServings)} serving${
+    Math.abs(scaledServings - 1) < 1e-9 ? '' : 's'
+  }${isScaled ? ` · scaled from ${recipe.servings}` : ''}`;
+  // Scale before converting: scaleAmount emits fractions ("¾ cup") that
+  // convertAmount reads back, so the two compose in this order only.
+  const displayAmount = (amount: string) => convertAmount(scaleAmount(amount, scale), system);
   // Max 2 affiliate cards per surface (matches Prep Mode and PostCook).
   const displayedTools = recipe.tools.slice(0, 2);
 
@@ -333,9 +347,15 @@ export function RecipeDetailScreen() {
         {/* ── Metadata ───────────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text role="caption" color="oliveDark">
-            {recipe.duration} · {recipe.servings} servings{recipe.tag ? ` · ${recipe.tag}` : ''}
+            {recipe.duration} · {servingsLabel}{recipe.tag ? ` · ${recipe.tag}` : ''}
           </Text>
-          <View style={{ height: spacing.sm }} />
+          <View style={{ height: spacing.md }} />
+          <ServingScaleControl
+            baseServings={baseServings}
+            scale={scale}
+            onChange={setScale}
+          />
+          <View style={{ height: spacing.md }} />
           <Pressable
             onPress={() => setPickerOpen(true)}
             accessibilityRole="button"
@@ -361,7 +381,7 @@ export function RecipeDetailScreen() {
               variant="secondary"
               label="Start Prep"
               onPress={() =>
-                navigation.navigate('PrepMode', { recipeId: recipe.id })
+                navigation.navigate('PrepMode', { recipeId: recipe.id, scale })
               }
             />
           </View>
@@ -370,7 +390,7 @@ export function RecipeDetailScreen() {
               variant="primary"
               label="Start Cooking →"
               onPress={() =>
-                navigation.navigate('CookMode', { recipeId: recipe.id })
+                navigation.navigate('CookMode', { recipeId: recipe.id, scale })
               }
             />
           </View>
@@ -420,7 +440,7 @@ export function RecipeDetailScreen() {
             <View key={ing.id} style={styles.ingredientRow}>
               <Text role="caption" color="oliveDark" style={styles.bullet}>·</Text>
               <Text role="body" style={styles.ingredientText}>
-                {convertAmount(ing.amount, system)} {ing.name}
+                {displayAmount(ing.amount)} {ing.name}
                 {ing.prep ? `, ${ing.prep}` : ''}
               </Text>
             </View>

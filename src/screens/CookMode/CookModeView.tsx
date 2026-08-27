@@ -111,6 +111,8 @@ export type CookModeTheme = 'dark' | 'light';
 export type CookModeViewProps = {
   recipeId: string;
   initialStepIndex?: number;
+  /** Session-only serving multiplier from Recipe Detail; 1 means unscaled. */
+  scale?: number;
   theme: CookModeTheme;
   cookId: string;
   onToggleTheme?: () => void;
@@ -121,6 +123,7 @@ export type CookModeViewProps = {
 export function CookModeView({
   recipeId,
   initialStepIndex = 0,
+  scale = 1,
   theme,
   cookId,
   onToggleTheme,
@@ -308,7 +311,7 @@ export function CookModeView({
       if (showPrompt) {
         // replace, not push: PostCook is terminal — finishing it resets to Home,
         // not back into Cook Mode
-        navigation.replace('PostCook', { recipeId: recipe.id, cookId });
+        navigation.replace('PostCook', { recipeId: recipe.id, cookId, scale });
       } else {
         try {
           await completeCook(cookId);
@@ -430,6 +433,7 @@ export function CookModeView({
                     timers={timers}
                     onTimerPress={handleTimerPress}
                     system={system}
+                    scale={scale}
                   />
                 </View>
               );

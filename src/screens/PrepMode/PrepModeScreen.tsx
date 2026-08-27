@@ -15,7 +15,7 @@ import { SectionLabel } from '../../components/SectionLabel';
 import { Text } from '../../components/Text';
 import { useRecipeDetail } from '../../data/hooks';
 import { getUserPreferences, type MeasurementSystem } from '../../data/preferences';
-import { convertTemperatures } from '../../lib/units';
+import { convertTemperatures, scaleAmount } from '../../lib/units';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, shadows, spacing } from '../../theme';
 
@@ -29,11 +29,16 @@ export function PrepModeScreen() {
 
   const { data: recipe, loading } = useRecipeDetail(route.params.recipeId);
 
+  // Session-only serving multiplier handed down from Recipe Detail; absent
+  // means 1x. Passed straight on to Cook Mode so the whole flow agrees.
+  const scale = route.params.scale ?? 1;
+
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
-  // Prep labels are free text. Only temperatures are converted — quantities can
-  // appear mid-sentence ("Measure out 2 cups flour") where a rewrite is far more
-  // likely to mangle the label than to help.
+  // Prep labels are free text. Temperatures are converted, and a scaled recipe
+  // also rewrites a *leading* quantity ("2 cups flour, sifted"). Quantities
+  // mid-sentence ("Measure out 2 cups flour") are left alone — a rewrite there
+  // is far more likely to mangle the label than to help.
   const [system, setSystem] = useState<MeasurementSystem>('imperial');
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +120,7 @@ export function PrepModeScreen() {
             variant="primary"
             label="Begin Cooking →"
             onPress={() => {
-              navigation.push('CookMode', { recipeId: recipe.id });
+              navigation.push('CookMode', { recipeId: recipe.id, scale });
             }}
           />
         </View>
@@ -210,7 +215,7 @@ export function PrepModeScreen() {
             {prepItems.map((item) => (
               <PrepChecklistItem
                 key={item.id}
-                label={convertTemperatures(item.label, system)}
+                label={convertTemperatures(scaleAmount(item.label, scale), system)}
                 duration={item.duration ?? undefined}
                 checked={!!checkedItems[item.id]}
                 onToggle={() => handleToggle(item.id)}
@@ -268,7 +273,7 @@ export function PrepModeScreen() {
           variant="primary"
           label="Begin Cooking →"
           onPress={() => {
-            navigation.push('CookMode', { recipeId: recipe.id });
+            navigation.push('CookMode', { recipeId: recipe.id, scale });
           }}
         />
       </View>
