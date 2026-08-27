@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { sweepOrphanRecipePhotos } from './src/data/recipes';
 import { ensureGuestUser } from './src/data/user';
 import { useDatabaseMigrations } from './src/db/migrate';
 import { linking } from './src/navigation/linking';
@@ -35,6 +36,16 @@ export default function App() {
       setUserReady(true);
     })();
   }, [migrationsReady]);
+
+  // Reclaim photos whose recipe is gone. Fire-and-forget and once per launch —
+  // `userReady` only ever flips false → true — since nothing on screen waits
+  // on it and a failure is purely cosmetic.
+  useEffect(() => {
+    if (!userReady) return;
+    sweepOrphanRecipePhotos().catch((e) =>
+      console.error('[app] orphan photo sweep failed', e),
+    );
+  }, [userReady]);
 
   if (migrationsError) {
     return (

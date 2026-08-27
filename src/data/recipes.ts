@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../db/client';
-import { deleteRecipePhotoFile, saveRecipePhoto } from '../lib/recipePhoto';
+import { deleteRecipePhotoFile, saveRecipePhoto, sweepOrphanPhotos } from '../lib/recipePhoto';
 import {
   clicks,
   cookPrepState,
@@ -271,4 +271,21 @@ export async function getRecipe(id: string): Promise<RecipeDetail | null> {
       affiliateUrl: t.affiliateUrl,
     })),
   };
+}
+
+/**
+ * One-time-per-launch cleanup of stored photos whose recipe no longer exists.
+ *
+ * The live id set is read unscoped — every user, soft-deleted rows included —
+ * because the two failure modes are not symmetric: keeping a stale file wastes
+ * a few hundred kilobytes, while wrongly classifying a live recipe as gone
+ * destroys a photo the user chose.
+ */
+export async function sweepOrphanRecipePhotos(): Promise<number> {
+  const rows = await db.select({ id: recipes.id }).from(recipes);
+  const removed = sweepOrphanPhotos(new Set(rows.map((r) => r.id)));
+  if (removed > 0) {
+    console.log(`[recipes] removed ${removed} orphaned photo${removed === 1 ? '' : 's'}`);
+  }
+  return removed;
 }

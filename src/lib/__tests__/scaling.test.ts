@@ -115,7 +115,7 @@ Deno.test('scale then convert: halved cups become millilitres', () => {
 });
 
 Deno.test('scale then convert: doubled tbsp becomes millilitres', () => {
-  assertEquals(convertLeadingAmount(scaleAmount('2 tbsp olive oil', 2), 'metric'), '59.1 ml olive oil');
+  assertEquals(convertLeadingAmount(scaleAmount('2 tbsp olive oil', 2), 'metric'), '60 ml olive oil');
 });
 
 Deno.test('scale then convert: a mixed-fraction result round-trips', () => {
@@ -176,4 +176,18 @@ Deno.test('fractional servings render as a mixed fraction', () => {
 
 Deno.test('a sub-one serving renders as a bare fraction', () => {
   assertEquals(formatQuantity(0.5), '½');
+});
+
+// ── Metric unit promotion when scaling down ─────────────────────────────────
+
+Deno.test('a scaled-down kilogram is reported in grams', () => {
+  assertEquals(scaleAmount('1 kg potatoes', 1 / 3), '335 g potatoes');
+});
+
+Deno.test('a scaled-down litre is reported in millilitres', () => {
+  assertEquals(scaleAmount('1 l stock', 0.25), '250 ml stock');
+});
+
+Deno.test('a kilogram that stays above one keeps its unit', () => {
+  assertEquals(scaleAmount('2 kg flour', 0.5), '1 kg flour');
 });

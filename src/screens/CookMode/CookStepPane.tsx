@@ -6,7 +6,12 @@ import { Text } from '../../components/Text';
 import { TimerToken } from '../../components/TimerToken';
 import type { MeasurementSystem } from '../../data/preferences';
 import type { RecipeDetail } from '../../data/recipes';
-import { convertLeadingAmount, scaleAmount } from '../../lib/units';
+import {
+  convertInlineAmounts,
+  convertLeadingAmount,
+  scaleAmount,
+  scaleInlineAmounts,
+} from '../../lib/units';
 import type { ColorToken } from '../../theme';
 import { spacing } from '../../theme';
 import { COOK_TEXT_MAX_FONT_MULTIPLIER } from './textSize';
@@ -49,6 +54,16 @@ function displayChip(text: string, system: MeasurementSystem, scale: number): st
   return convertLeadingAmount(scaleAmount(text, scale), system);
 }
 
+/**
+ * Step prose gets the same treatment as the chips beside it — a chip reading
+ * "30 ml olive oil" next to a sentence saying "2 tablespoons" is worse than no
+ * conversion at all. The inline scanner is narrower than the chip parser and
+ * leaves anything it can't vouch for untouched.
+ */
+function displayStepText(text: string, system: MeasurementSystem, scale: number): string {
+  return convertInlineAmounts(scaleInlineAmounts(text, scale), system);
+}
+
 export function stepToPlainText(
   step: RecipeStep,
   system: MeasurementSystem,
@@ -56,7 +71,7 @@ export function stepToPlainText(
 ): string {
   return step.segments
     .map((seg) => {
-      if (seg.type === 'text') return seg.content;
+      if (seg.type === 'text') return displayStepText(seg.content, system, scale);
       if (seg.type === 'ingredient') {
         const display = step.ingredients.find((x) => x.id === seg.ingredientId)?.display;
         // Same treatment the chips get, so the NEXT preview can't disagree
@@ -109,7 +124,7 @@ export function CookStepPane({
       <View style={[styles.stepBody, { columnGap: textScale.columnGap }]}>
         {step.segments.flatMap((seg, segIdx) => {
           if (seg.type === 'text') {
-            return seg.content
+            return displayStepText(seg.content, system, scale)
               .split(/\s+/)
               .filter(Boolean)
               .map((word, wIdx) => (

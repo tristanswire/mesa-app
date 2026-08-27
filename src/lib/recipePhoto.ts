@@ -60,3 +60,53 @@ export function saveRecipePhoto(
 
   return destination.uri;
 }
+
+/**
+ * Delete photos left behind by recipes that no longer exist — a delete that
+ * failed partway, or a database restored without its files.
+ *
+ * Filenames are `${recipeId}-${timestamp}.jpg` and a recipe id contains dashes
+ * of its own, so ownership is decided by prefix-matching the live id set rather
+ * than by splitting the name apart. A file is removed only when no live recipe
+ * claims it; a photo belonging to a real recipe is never touched.
+ *
+ * Returns the number of files removed. Never throws — a failed sweep costs a
+ * few stale kilobytes, which is not worth interrupting a launch over.
+ */
+export function sweepOrphanPhotos(liveRecipeIds: ReadonlySet<string>): number {
+  let removed = 0;
+
+  try {
+    // Deliberately not photoDir(): the sweep should never create the directory
+    // it is cleaning.
+    const dir = new Directory(Paths.document, PHOTO_DIR_NAME);
+    if (!dir.exists) return 0;
+
+    for (const entry of dir.list()) {
+      if (!(entry instanceof File)) continue;
+      // The same guard the single-file delete uses, so this can only ever
+      // unlink something inside the directory this module owns.
+      if (!isLocalRecipePhoto(entry.uri)) continue;
+
+      let owned = false;
+      for (const id of liveRecipeIds) {
+        if (entry.name.startsWith(`${id}-`)) {
+          owned = true;
+          break;
+        }
+      }
+      if (owned) continue;
+
+      try {
+        entry.delete();
+        removed += 1;
+      } catch (e) {
+        console.error('[recipePhoto] failed to remove orphan', entry.uri, e);
+      }
+    }
+  } catch (e) {
+    console.error('[recipePhoto] orphan sweep failed', e);
+  }
+
+  return removed;
+}

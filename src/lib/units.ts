@@ -100,11 +100,11 @@ export function convertAmount(amount: string, system: MeasurementSystem): string
 
   if (dimension === 'volume') {
     const ml = quantity * (unit.toMl ?? 0);
-    return system === 'metric' ? `${formatMetric(ml)} ml` : formatImperialVolume(ml);
+    return system === 'metric' ? formatMetricAmount(ml, 'ml') : formatImperialVolume(ml);
   }
   // mass
   const g = quantity * (unit.toG ?? 0);
-  return system === 'metric' ? `${formatMetric(g)} g` : formatImperialMass(g);
+  return system === 'metric' ? formatMetricAmount(g, 'g') : formatImperialMass(g);
 }
 
 type ParsedAmount = {
@@ -249,10 +249,110 @@ function parseQuantity(s: string): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
-// Round per spec: ≥100 → whole, otherwise 1 decimal (trailing .0 trimmed).
-function formatMetric(value: number): string {
-  if (value >= 100) return Math.round(value).toString();
-  return trimDecimal(value.toFixed(1));
+// ── Metric formatting ───────────────────────────────────────────────────────
+// A conversion is only useful if the number lands somewhere a cook can measure.
+// "29.6 ml" is arithmetically right and practically useless — a 30 ml spoon is
+// the thing in the drawer. So converted values snap to the measures that
+// actually exist, but only when they're close enough that the snap is a
+// rounding decision rather than a different quantity.
+
+type MetricUnit = 'ml' | 'l' | 'g' | 'kg';
+
+/** Millilitre measures a cook actually owns: spoons, jugs, cup equivalents. */
+const ML_MEASURES: ReadonlyArray<number> = [
+  1, 2, 2.5, 5, 7.5, 10, 15, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90,
+  100, 120, 125, 150, 175, 200, 225, 240, 250, 300, 350, 400, 450, 500,
+  600, 700, 750, 800, 900, 1000,
+];
+
+/** How far a value may sit from a measure and still be rounded onto it. */
+const ML_TOLERANCE = 0.05;
+const GRAM_TOLERANCE = 0.03;
+
+/** Below this, grams are close enough already; snapping just loses precision. */
+const GRAM_SNAP_ABOVE = 20;
+
+/**
+ * Conversions a cook already knows by heart — the pound family, plus the stick
+ * of butter every US recipe is built around. A pound is 454 g in every cookbook
+ * ever printed, so rounding it to 455 is arithmetically fine and still reads as
+ * a mistake. Matched on a tight ±1 g window rather than a percentage, so a
+ * genuinely clean nearby value (455 g, 225 g) is never rewritten into one.
+ */
+const GRAM_LANDMARKS: ReadonlyArray<number> = [
+  113, // ¼ lb — one stick of butter
+  227, // ½ lb
+  454, // 1 lb
+  907, // 2 lb
+];
+const GRAM_LANDMARK_EPSILON = 1;
+
+/** Nearest measure within its own tolerance, or null when nothing is close. */
+function nearestMeasure(
+  value: number,
+  measures: ReadonlyArray<number>,
+  tolerance: number,
+): number | null {
+  let best: number | null = null;
+  let bestDistance = Infinity;
+  for (const measure of measures) {
+    const distance = Math.abs(value - measure);
+    if (distance <= measure * tolerance && distance < bestDistance) {
+      bestDistance = distance;
+      best = measure;
+    }
+  }
+  return best;
+}
+
+function formatMilliliters(ml: number): string {
+  if (ml >= 10) {
+    // Already a clean multiple of 5 — 360 ml (1½ cups) is a real measurement,
+    // not something to nudge onto 350.
+    if (Math.abs(ml - Math.round(ml / 5) * 5) < 1e-6) return String(Math.round(ml));
+    const snapped = nearestMeasure(ml, ML_MEASURES, ML_TOLERANCE);
+    return String(snapped ?? Math.round(ml));
+  }
+  const snapped = nearestMeasure(ml, ML_MEASURES, ML_TOLERANCE);
+  if (snapped !== null) return trimDecimal(snapped.toFixed(1));
+  return trimDecimal(ml.toFixed(1));
+}
+
+function formatGrams(g: number): string {
+  if (g >= GRAM_SNAP_ABOVE) {
+    const landmark = GRAM_LANDMARKS.find(
+      (value) => Math.abs(g - value) < GRAM_LANDMARK_EPSILON,
+    );
+    if (landmark !== undefined) return String(landmark);
+
+    const target = Math.round(g / 5) * 5;
+    if (Math.abs(g - target) <= target * GRAM_TOLERANCE) return String(target);
+    return String(Math.round(g));
+  }
+  // Sub-gram amounts keep a decimal so a scaled trace doesn't render as "0 g".
+  return g >= 1 ? String(Math.round(g)) : trimDecimal(g.toFixed(1));
+}
+
+/**
+ * Render a metric quantity with its unit. Litres and kilograms below 1 are
+ * promoted to millilitres and grams — "300 g" is how a recipe writes it,
+ * "0.3 kg" is how a calculator does.
+ */
+function formatMetricAmount(value: number, unit: MetricUnit): string {
+  switch (unit) {
+    case 'l':
+      return value < 1
+        ? formatMetricAmount(value * 1000, 'ml')
+        : `${trimDecimal(value.toFixed(1))} l`;
+    case 'kg':
+      return value < 1
+        ? formatMetricAmount(value * 1000, 'g')
+        : `${trimDecimal(value.toFixed(1))} kg`;
+    case 'ml':
+      return `${formatMilliliters(value)} ml`;
+    case 'g':
+      return `${formatGrams(value)} g`;
+  }
 }
 
 function formatImperialVolume(ml: number): string {
@@ -364,8 +464,8 @@ function adjustUnitPlural(unitText: string, quantity: number): string {
 /**
  * Scale the leading amount in `text` by `factor`, preserving whatever follows:
  * "1½ cups sugar" × ½ → "¾ cup sugar". US and unitless amounts render as
- * cooking fractions; metric amounts stay decimal, matching convertAmount's
- * output so the two compose (scale first, then convert).
+ * cooking fractions; metric amounts go through formatMetricAmount, the same
+ * formatter convertAmount uses, so the two compose (scale first, then convert).
  *
  * Passed through byte-for-byte when scaling would be wrong or unsafe:
  *   - factor of 1 (nothing to do)
@@ -402,16 +502,116 @@ export function scaleAmount(text: string, factor: number): string {
   // by another number, is some other notation we shouldn't rewrite.
   if (!unit && parsed.rest && (parsed.gap === '' || /^\d/.test(parsed.rest))) return text;
 
-  const isMetric = unit?.kind === 'metric-volume' || unit?.kind === 'metric-mass';
   const scaled = parsed.quantity * factor;
-  const quantityOut = isMetric ? formatMetric(scaled) : formatQuantity(scaled);
 
   if (!unit) {
+    const quantityOut = formatQuantity(scaled);
     return parsed.rest ? `${quantityOut} ${parsed.rest}` : quantityOut;
   }
 
   const unitText = parsed.rest.match(unit.pattern)![0];
   // Slice rather than trim so the ingredient name keeps its original spacing.
   const tail = parsed.rest.slice(unitText.length);
-  return `${quantityOut} ${adjustUnitPlural(unitText, snapQuantity(scaled))}${tail}`;
+
+  // Metric re-renders through the shared formatter, which owns the unit as well
+  // as the number — a scaled-down kilogram becomes "333 g", not "0.3 kg".
+  const metricUnit = toMetricUnit(unit);
+  if (metricUnit) return `${formatMetricAmount(scaled, metricUnit)}${tail}`;
+
+  return `${formatQuantity(scaled)} ${adjustUnitPlural(unitText, snapQuantity(scaled))}${tail}`;
+}
+
+function toMetricUnit(unit: UnitDef): MetricUnit | null {
+  if (unit.kind === 'metric-volume') return unit.toMl === 1000 ? 'l' : 'ml';
+  if (unit.kind === 'metric-mass') return unit.toG === 1000 ? 'kg' : 'g';
+  return null;
+}
+
+// ── Inline amounts in prose ─────────────────────────────────────────────────
+// Cook Mode renders a step as chips plus free text. The chips convert, so the
+// prose has to as well — a chip reading "30 ml olive oil" beside a sentence
+// saying "two tablespoons" is worse than not converting at all.
+//
+// This scanner is deliberately narrower than the amount parser above. It only
+// fires on unambiguous unit words, and it refuses anything with range or
+// dimension context around it. A missed conversion is invisible; a mangled
+// sentence is not.
+
+/**
+ * Unit tokens safe to recognize mid-sentence. Single-letter cooking
+ * abbreviations (C, T, t) are excluded on purpose — "2 C flour" is a cup far
+ * more often than 2 Celsius, and there is no way to tell from the text.
+ * Trailing periods are never consumed, so "1 tsp." keeps its full stop.
+ */
+const INLINE_UNITS = [
+  'tablespoons?', 'tbsps?', 'tbls?',
+  'teaspoons?', 'tsps?',
+  'cups?',
+  'fl\\s*oz', 'fluid\\s+ounces?',
+  'pounds?', 'lbs?',
+  'ounces?', 'oz',
+  'kilograms?', 'kilogrammes?', 'kg',
+  'grams?', 'grammes?', 'g',
+  'milliliters?', 'millilitres?', 'ml',
+  'liters?', 'litres?', 'l',
+].join('|');
+
+/** Longest forms first so "1 1/2" wins over "1", and "1½" over "1". */
+const INLINE_QUANTITY = [
+  '\\d+\\s+\\d+\\s*/\\s*\\d+',
+  '\\d+\\s*[¼½¾⅐-⅒⅓⅔⅛⅜⅝⅞]',
+  '\\d+\\s*/\\s*\\d+',
+  '\\d+(?:\\.\\d+)?',
+  '[¼½¾⅐-⅒⅓⅔⅛⅜⅝⅞]',
+].join('|');
+
+// No capture groups: the replace callback receives (match, offset, source).
+// String.replace resets lastIndex on every call, so sharing one instance is safe.
+const INLINE_AMOUNT = new RegExp(`(?:${INLINE_QUANTITY})\\s*(?:${INLINE_UNITS})\\b`, 'gi');
+
+/**
+ * Reject matches whose surroundings say this isn't a standalone quantity:
+ * ranges ("2-3 tablespoons", "2 to 3 cups"), dimensions ("9 x 13"), or a number
+ * glued to the token before it.
+ */
+function isStandaloneInlineAmount(before: string, after: string): boolean {
+  if (/[\w.,/]$/.test(before)) return false;
+  if (/[-–—x×]\s*$/i.test(before)) return false;
+  if (/\b(?:to|or)\s+$/i.test(before)) return false;
+  if (/^\s*(?:[-–—]|to\s+\d|or\s+\d)/i.test(after)) return false;
+  return true;
+}
+
+function replaceInlineAmounts(text: string, transform: (amount: string) => string): string {
+  return text.replace(INLINE_AMOUNT, (match: string, ...rest: unknown[]) => {
+    const offset = rest[rest.length - 2] as number;
+    if (!isStandaloneInlineAmount(text.slice(0, offset), text.slice(offset + match.length))) {
+      return match;
+    }
+    return transform(match);
+  });
+}
+
+/**
+ * Convert every unambiguous quantity+unit in a sentence, plus any temperatures:
+ * "Whisk in 2 tablespoons olive oil" → "Whisk in 30 ml olive oil".
+ *
+ * Everything the scanner can't vouch for is left exactly as written — ranges,
+ * bare single-letter units, amounts already in the target system, and any text
+ * with no recognizable measure in it.
+ */
+export function convertInlineAmounts(text: string, system: MeasurementSystem): string {
+  if (!text) return text;
+  const converted = replaceInlineAmounts(text, (amount) => convertAmount(amount, system));
+  return convertTemperatures(converted, system);
+}
+
+/**
+ * Scale every unambiguous quantity+unit in a sentence by `factor`, using the
+ * same guards as convertInlineAmounts. Runs before conversion — scaleAmount
+ * emits cooking fractions that convertAmount can read back, not the reverse.
+ */
+export function scaleInlineAmounts(text: string, factor: number): string {
+  if (!text || factor === 1) return text;
+  return replaceInlineAmounts(text, (amount) => scaleAmount(amount, factor));
 }
