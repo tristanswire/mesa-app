@@ -16,6 +16,8 @@ export const colors = {
   /** Primary text. AAA on cream (15.22:1). */
   ink: '#1F1C19',
   white: '#FFFFFF',
+  /** Muted text + inactive nav icons on Pine. AA on pine (5.58:1); not for Cream surfaces. */
+  sage: '#B7BCAB',
   /** Tinted cream for Cook Mode step number on pine — "tinted white on pine" per V2 spec */
   creamMuted: 'rgba(247, 242, 234, 0.45)',
   /** Tinted ink for Cook Mode NEXT preview on cream — symmetric analog of creamMuted */

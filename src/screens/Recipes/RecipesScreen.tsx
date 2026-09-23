@@ -1,40 +1,48 @@
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Bookmark, Search } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { Bookmark, ChevronRight, Link, Search } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CAPSULE_NAV_CLEARANCE } from '../../components/CapsuleNav';
 import { EmptyState } from '../../components/EmptyState';
-import { FAB } from '../../components/FAB';
 import { Input } from '../../components/Input';
 import { Pill } from '../../components/Pill';
 import { RecipeCard } from '../../components/RecipeCard';
 import { Skeleton } from '../../components/Skeleton';
 import { Text } from '../../components/Text';
-import { useRecipeSearch, useRecipesList, useRecipeTagIndex } from '../../data/hooks';
+import {
+  useCookedRecipeIds,
+  useRecipeSearch,
+  useRecipesList,
+  useRecipeTagIndex,
+} from '../../data/hooks';
 import {
   RECIPE_CATEGORIES,
   RECIPE_CATEGORY_LABELS,
   type RecipeCategory,
   type RecipeListItem,
 } from '../../data/recipes';
-import type { MainStackParamList } from '../../navigation/types';
+import {
+  BANK_FILTER_CATEGORY,
+  BANK_FILTER_LABELS,
+  BANK_SHORTCUT_FILTERS,
+  matchesBankFilter,
+  type BankFilterKey,
+} from '../../lib/bankFilters';
+import type { MainStackParamList, TabsParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
+type Route = RouteProp<TabsParamList, 'Recipes'>;
 
-// Filter pills: "All" + the 9 user-assignable categories. Tag-based filtering
-// (Weeknight, Quick, etc.) was wired but never applied before Phase 3.22 — now
-// replaced by category, the user-controlled dimension. `recipe.tag` remains on
-// the schema but is no longer exposed as a filter.
+// Filter pill row: "All", the three shortcut pills Home links to (Under 30
+// min, Weeknight, Never cooked — rules in lib/bankFilters), then the 9
+// user-assignable categories. Category is single-select; a shortcut toggles on
+// top of it. `recipe.tag` is only read through the Weeknight rule.
 type FilterValue = 'All' | RecipeCategory;
-const FILTERS: FilterValue[] = ['All', ...RECIPE_CATEGORIES];
-
-function filterLabel(value: FilterValue): string {
-  return value === 'All' ? 'All' : RECIPE_CATEGORY_LABELS[value];
-}
 
 function asTintKey(value: string | null): 'terracotta' | 'olive' | undefined {
   return value === 'terracotta' || value === 'olive' ? value : undefined;
@@ -49,7 +57,38 @@ type HeaderProps = {
   tags: string[];
   activeTag: string | null;
   onTagPress: (tag: string) => void;
+  /** Under 30 min / Weeknight / Never cooked — toggles, ANDed with the category. */
+  shortcut: BankFilterKey | null;
+  onShortcutPress: (key: BankFilterKey) => void;
+  searchRef: React.Ref<TextInput>;
+  /** False while a filter applied from Home is in effect. */
+  showAddCard: boolean;
+  onAddPress: () => void;
 };
+
+// Import entry point for the Recipes screen (the other is the capsule nav's
+// "+"). Recipes only — Home deliberately doesn't carry it.
+function AddRecipeCard({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Add a recipe"
+      style={({ pressed }) => [styles.addCard, pressed && { opacity: 0.85 }]}
+    >
+      <View style={styles.addIcon}>
+        <Link size={20} color={colors.white} strokeWidth={1.8} />
+      </View>
+      <View style={styles.addText}>
+        <Text role="body" style={styles.addTitle}>Add a recipe</Text>
+        <Text role="caption" style={styles.addSubtitle}>
+          Paste a link, snap a photo, or share from Safari.
+        </Text>
+      </View>
+      <ChevronRight size={18} color={colors.terracotta} strokeWidth={1.8} />
+    </Pressable>
+  );
+}
 
 function ScreenHeader({
   searchQuery,
@@ -59,17 +98,29 @@ function ScreenHeader({
   tags,
   activeTag,
   onTagPress,
+  shortcut,
+  onShortcutPress,
+  searchRef,
+  showAddCard,
+  onAddPress,
 }: HeaderProps) {
   return (
     <View>
       <Text role="display">My Recipes</Text>
       <View style={{ height: spacing.base }} />
+      {showAddCard && (
+        <>
+          <AddRecipeCard onPress={onAddPress} />
+          <View style={{ height: spacing.base }} />
+        </>
+      )}
       <Input
         icon={Search}
         value={searchQuery}
         onChangeText={onSearchChange}
         placeholder="Search recipes…"
         accessibilityLabel="Search recipes"
+        inputRef={searchRef}
       />
       <View style={{ height: spacing.base }} />
       {/* Full-bleed: negative margin escapes listContent paddingHorizontal */}
@@ -79,12 +130,26 @@ function ScreenHeader({
         style={styles.pillsScroll}
         contentContainerStyle={styles.pillsContent}
       >
-        {FILTERS.map((filter) => (
+        {/* "All" is active only when nothing at all narrows the list. */}
+        <Pill
+          label="All"
+          active={activeFilter === 'All' && shortcut === null}
+          onPress={() => onFilterPress('All')}
+        />
+        {BANK_SHORTCUT_FILTERS.map((key) => (
           <Pill
-            key={filter}
-            label={filterLabel(filter)}
-            active={activeFilter === filter}
-            onPress={() => onFilterPress(filter)}
+            key={key}
+            label={BANK_FILTER_LABELS[key]}
+            active={shortcut === key}
+            onPress={() => onShortcutPress(key)}
+          />
+        ))}
+        {RECIPE_CATEGORIES.map((category) => (
+          <Pill
+            key={category}
+            label={RECIPE_CATEGORY_LABELS[category]}
+            active={activeFilter === category}
+            onPress={() => onFilterPress(category)}
           />
         ))}
       </ScrollView>
@@ -141,19 +206,66 @@ function GridSkeleton() {
 
 export function RecipesScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterValue>('All');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [shortcut, setShortcut] = useState<BankFilterKey | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef<TextInput>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+  // Set when Home applied a filter; hides the Add card so the result starts at
+  // the search field. Drops once the user clears back to an unfiltered list.
+  const [filteredFromHome, setFilteredFromHome] = useState(false);
+  const isFiltered = activeFilter !== 'All' || shortcut !== null;
+  useEffect(() => {
+    if (!isFiltered) setFilteredFromHome(false);
+  }, [isFiltered]);
 
   const { data: recipes, ready } = useRecipesList();
   const tagIndex = useRecipeTagIndex();
+  const cookedIds = useCookedRecipeIds();
+
+  // Apply a Home shortcut. Keyed on `request` so tapping the same chip twice
+  // still resets filters the user changed in between.
+  const request = route.params?.request;
+  useEffect(() => {
+    const params = route.params;
+    if (!params) return;
+    if (params.filter) {
+      const category = BANK_FILTER_CATEGORY[params.filter];
+      // Meal types select their category pill; the rest select their shortcut
+      // pill. Either way the Home filter replaces whatever was set before.
+      setActiveFilter(category ?? 'All');
+      setShortcut(category ? null : params.filter);
+      setActiveTag(null);
+      setSearchQuery('');
+      setFilteredFromHome(true);
+    }
+    if (params.focusSearch) setFocusRequest(params.request);
+  }, [request]); // params read fresh; only a new request re-applies them
+
+  // The field remounts when the loading skeleton gives way to the list, so
+  // focus waits until the real header is up.
+  useEffect(() => {
+    if (!focusRequest || !ready) return;
+    const frame = requestAnimationFrame(() => searchRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [focusRequest, ready]);
   // null means "nothing typed"; an empty Map means "searched, matched nothing".
   const searchResults = useRecipeSearch(searchQuery);
 
+  // "All" clears the shortcut too, so it always means the whole library.
   const handleFilterPress = async (filter: FilterValue) => {
     await Haptics.selectionAsync();
     setActiveFilter(filter);
+    if (filter === 'All') setShortcut(null);
+  };
+
+  // Tapping the active shortcut clears it.
+  const handleShortcutPress = async (key: BankFilterKey) => {
+    await Haptics.selectionAsync();
+    setShortcut((current) => (current === key ? null : key));
   };
 
   // Tapping the active tag clears it, so the row needs no reset pill.
@@ -183,6 +295,12 @@ export function RecipesScreen() {
   const visibleRecipes = recipes.filter((r) => {
     if (activeFilter !== 'All' && r.category !== activeFilter) return false;
     if (activeTag && !(tagIndex.get(r.id) ?? []).includes(activeTag)) return false;
+    if (
+      shortcut &&
+      !matchesBankFilter(shortcut, r, { tags: tagIndex.get(r.id) ?? [], cookedIds })
+    ) {
+      return false;
+    }
     if (searchResults && !searchResults.has(r.id)) return false;
     return true;
   });
@@ -226,7 +344,10 @@ export function RecipesScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.listContent,
-              { paddingTop: insets.top + spacing.lg },
+              {
+                paddingTop: insets.top + spacing.lg,
+                paddingBottom: insets.bottom + CAPSULE_NAV_CLEARANCE,
+              },
             ]}
           >
             <ScreenHeader
@@ -237,6 +358,11 @@ export function RecipesScreen() {
               tags={tagOptions}
               activeTag={activeTag}
               onTagPress={handleTagPress}
+              shortcut={shortcut}
+              onShortcutPress={handleShortcutPress}
+              searchRef={searchRef}
+              showAddCard={!filteredFromHome}
+              onAddPress={() => navigation.navigate('Import')}
             />
             <GridSkeleton />
           </ScrollView>
@@ -246,7 +372,11 @@ export function RecipesScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={[
                 styles.listContent,
-                { paddingTop: insets.top + spacing.lg, flexGrow: 1 },
+                {
+                  paddingTop: insets.top + spacing.lg,
+                  paddingBottom: insets.bottom + CAPSULE_NAV_CLEARANCE,
+                  flexGrow: 1,
+                },
               ]}
             >
               <ScreenHeader
@@ -257,6 +387,12 @@ export function RecipesScreen() {
                 tags={tagOptions}
                 activeTag={activeTag}
                 onTagPress={handleTagPress}
+                shortcut={shortcut}
+                onShortcutPress={handleShortcutPress}
+                searchRef={searchRef}
+                // Empty library: the empty state below carries the import CTA.
+                showAddCard={false}
+                onAddPress={() => navigation.navigate('Import')}
               />
               <EmptyState
                 icon={Bookmark}
@@ -282,6 +418,11 @@ export function RecipesScreen() {
                 tags={tagOptions}
                 activeTag={activeTag}
                 onTagPress={handleTagPress}
+                shortcut={shortcut}
+                onShortcutPress={handleShortcutPress}
+                searchRef={searchRef}
+                showAddCard={!filteredFromHome}
+                onAddPress={() => navigation.navigate('Import')}
               />
             }
             ListEmptyComponent={
@@ -299,15 +440,13 @@ export function RecipesScreen() {
             columnWrapperStyle={filteredRecipes.length > 0 ? styles.columnWrapper : undefined}
             contentContainerStyle={[
               styles.listContent,
-              { paddingTop: insets.top + spacing.lg },
+              {
+                paddingTop: insets.top + spacing.lg,
+                paddingBottom: insets.bottom + CAPSULE_NAV_CLEARANCE,
+              },
             ]}
           />
         )}
-        <FAB
-          onPress={() => navigation.navigate('Import')}
-          accessibilityLabel="Import a recipe"
-          testID="fab-import"
-        />
       </View>
     </>
   );
@@ -325,7 +464,42 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+  },
+  // Add a recipe card. Inherits the 24 list gutter so it lines up with the
+  // title and search field.
+  addCard: {
+    minHeight: 76,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.clay,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  addIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.terracotta,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addText: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+  },
+  addTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  addSubtitle: {
+    fontSize: 12,
+    lineHeight: 16, // 1.35 × 12
   },
   // Negative margin breaks out of listContent paddingHorizontal so pills reach screen edges
   pillsScroll: {

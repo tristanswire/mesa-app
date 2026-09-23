@@ -6,6 +6,11 @@ import { userPreferences, users } from '../db/schema';
 
 const GUEST_ID_KEY = 'mesa.guest_user_id';
 
+// No display name is stored yet (guest users, no auth/profile). Profile's
+// header and Home's greeting + avatar share this placeholder until Phase 3.10
+// adds a real name field.
+export const MOCK_PROFILE_NAME = 'Tristan';
+
 export async function ensureGuestUser(): Promise<string> {
   let guestId = await AsyncStorage.getItem(GUEST_ID_KEY);
 

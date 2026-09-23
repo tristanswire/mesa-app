@@ -8,8 +8,8 @@ import type { ColorToken, SpacingToken, TypographyRole } from '../../theme';
 import {
   AffiliateCard,
   Button,
+  CapsuleNav,
   ClipboardBanner,
-  FAB,
   FeatureCard,
   IconButton,
   IngredientChip,
@@ -19,7 +19,6 @@ import {
   RecipeCard,
   SectionLabel,
   StepCard,
-  TabBar,
   Text,
   TimerToken,
 } from '../../components';
@@ -244,10 +243,10 @@ export function ShowcaseScreen() {
         <ProgressBar progress={0.65} tint="olive" height={8} />
 
         <Divider />
-        <SectionLabel>TAB BAR</SectionLabel>
+        <SectionLabel>CAPSULE NAV</SectionLabel>
         <SectionGap />
-        <View style={styles.tabBarContainer}>
-          <TabBar
+        <View>
+          <CapsuleNav
             tabs={[
               { key: 'home', label: 'Home', icon: Home },
               { key: 'recipes', label: 'Recipes', icon: Bookmark },
@@ -255,6 +254,7 @@ export function ShowcaseScreen() {
             ]}
             activeKey={activeTab}
             onTabPress={setActiveTab}
+            onAddPress={() => {}}
           />
         </View>
 
@@ -277,8 +277,6 @@ export function ShowcaseScreen() {
 
         <View style={{ height: spacing.huge }} />
       </ScrollView>
-
-      <FAB onPress={() => {}} accessibilityLabel="Add new recipe" />
     </SafeAreaView>
     </>
   );
@@ -300,5 +298,4 @@ const styles = StyleSheet.create({
   gridRow: { flexDirection: 'row', gap: spacing.md },
   gridItem: { flex: 1 },
   checklistContainer: { marginTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.oat },
-  tabBarContainer: { borderRadius: radii.md, overflow: 'hidden', borderWidth: 1, borderColor: colors.oat },
 });

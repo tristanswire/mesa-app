@@ -34,11 +34,8 @@ export type { PrepChecklistItemProps } from './PrepChecklistItem';
 export { ProgressBar } from './ProgressBar';
 export type { ProgressBarProps } from './ProgressBar';
 
-export { TabBar } from './TabBar';
-export type { TabBarProps, TabItem } from './TabBar';
-
-export { FAB } from './FAB';
-export type { FABProps } from './FAB';
+export { CapsuleNav, CAPSULE_NAV_CLEARANCE } from './CapsuleNav';
+export type { CapsuleNavProps, CapsuleNavItem } from './CapsuleNav';
 
 export { FeatureCard } from './FeatureCard';
 export type { FeatureCardProps } from './FeatureCard';

@@ -5,6 +5,7 @@ import { User } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CAPSULE_NAV_CLEARANCE } from '../../components/CapsuleNav';
 import { SectionLabel } from '../../components/SectionLabel';
 import { SettingRow } from '../../components/SettingRow';
 import { Skeleton } from '../../components/Skeleton';
@@ -16,6 +17,7 @@ import {
   type CookingFrequency,
   type SkillLevel,
 } from '../../data/preferences';
+import { MOCK_PROFILE_NAME } from '../../data/user';
 import { SUPPORT_EMAIL } from '../../lib/constants';
 import type { MainStackParamList } from '../../navigation/types';
 import { colors, radii, spacing } from '../../theme';
@@ -25,7 +27,7 @@ type Nav = NativeStackNavigationProp<MainStackParamList>;
 // Profile name + tagline are still mocked — Phase 3.10 will pull from auth/profile.
 // Collections is hardcoded to 0 until the feature ships (Phase 4 deferred).
 const PROFILE_HEADER = {
-  name: 'Tristan',
+  name: MOCK_PROFILE_NAME,
   tagline: 'Home cook',
 };
 
@@ -72,7 +74,7 @@ export function ProfileScreen() {
           styles.scrollContent,
           {
             paddingTop: insets.top + spacing.lg,
-            paddingBottom: insets.bottom + spacing.xxl,
+            paddingBottom: insets.bottom + CAPSULE_NAV_CLEARANCE,
           },
         ]}
       >

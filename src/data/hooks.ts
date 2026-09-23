@@ -85,8 +85,10 @@ export function useRecipeDetail(id: string | undefined) {
 
 type HomeData = {
   lastCooked: RecipeListItem | null;
-  inYourBank: RecipeListItem[];
-  worthATry: RecipeListItem[];
+  /** ISO completedAt of the cook behind `lastCooked`; null when there is none. */
+  lastCookedAt: string | null;
+  /** The whole user-scoped library, for the "Your bank" counts. */
+  recipes: RecipeListItem[];
   ready: boolean;
 };
 
@@ -103,7 +105,7 @@ export function useHomeData(): HomeData {
   }, []);
 
   const lastCookQuery = db
-    .select({ recipeId: cooks.recipeId })
+    .select({ recipeId: cooks.recipeId, completedAt: cooks.completedAt })
     .from(cooks)
     .where(and(eq(cooks.userId, userId ?? NO_USER), isNotNull(cooks.completedAt)))
     .orderBy(desc(cooks.completedAt))
@@ -111,7 +113,7 @@ export function useHomeData(): HomeData {
   const { data: lastCookData } = useLiveQuery(lastCookQuery, [userId]);
 
   if (!ready) {
-    return { lastCooked: null, inYourBank: [], worthATry: [], ready: false };
+    return { lastCooked: null, lastCookedAt: null, recipes: [], ready: false };
   }
 
   // Most recent completed cook → its recipe. A new user with no completed cook
@@ -122,15 +124,32 @@ export function useHomeData(): HomeData {
     ? data.find((r) => r.id === lastCookedId) ?? null
     : null;
 
-  // Exclude the hero from the rows below so no recipe appears twice on Home.
-  const rest = lastCooked ? data.filter((r) => r.id !== lastCooked.id) : data;
-
   return {
     lastCooked,
-    inYourBank: rest.slice(0, 2),
-    worthATry: rest.slice(2, 5),
+    lastCookedAt: lastCooked ? lastCookData?.[0]?.completedAt ?? null : null,
+    recipes: data,
     ready: true,
   };
+}
+
+/**
+ * Ids of recipes with at least one completed cook — the inverse of the "Never
+ * cooked" filter. Live, so finishing a cook moves a recipe out of that bucket
+ * without a reload.
+ */
+export function useCookedRecipeIds(): Set<string> {
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    getCurrentUserId().then(setUserId).catch(() => setUserId(null));
+  }, []);
+
+  const query = db
+    .selectDistinct({ recipeId: cooks.recipeId })
+    .from(cooks)
+    .where(and(eq(cooks.userId, userId ?? NO_USER), isNotNull(cooks.completedAt)));
+  const { data } = useLiveQuery(query, [userId]);
+
+  return useMemo(() => new Set((data ?? []).map((row) => row.recipeId)), [data]);
 }
 
 // Reactive Profile stats. Recomputes whenever any row in the cooks table changes

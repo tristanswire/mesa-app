@@ -44,8 +44,8 @@ These define the edges of V1. Half of "what's needed" is confirming nothing out-
 |----|-----------|--------|
 | 1.1 | Bottom nav has exactly 3 tabs: Home / Recipes / Profile | |
 | 1.2 | No Import tab and no Store tab in the tab bar | |
-| 1.3 | Import is a Terracotta FAB, bottom-right, present on Home and Recipes | |
-| 1.4 | FAB is 56×56pt | |
+| 1.3 | Import has two entry points, both opening the Import modal: the capsule nav's trailing "+" segment (44×44 Oat circle, Pine "+", after a divider; accessibility label "Add a recipe"; visible on Home, Recipes, and Profile) and the "Add a recipe" card at the top of Recipes | |
+| 1.4 | The "Add a recipe" card sits under the "My Recipes" title, above search, on Recipes only (never Home), and is hidden while a filter applied from Home is in effect | |
 | 1.5 | Cook Mode is a full-screen sub-experience with NO tab bar | |
 | 1.6 | Prep Mode is a full-screen sub-experience with NO tab bar | |
 | 1.7 | Uses React Navigation (not Expo Router) | |

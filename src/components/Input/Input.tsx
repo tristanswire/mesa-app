@@ -20,6 +20,8 @@ export interface InputProps {
   keyboardType?: KeyboardTypeOptions;
   returnKeyType?: ReturnKeyTypeOptions;
   accessibilityLabel?: string;
+  /** For callers that need to focus the field programmatically. */
+  inputRef?: React.Ref<TextInput>;
 }
 
 export function Input({
@@ -31,6 +33,7 @@ export function Input({
   keyboardType,
   returnKeyType,
   accessibilityLabel,
+  inputRef,
 }: InputProps) {
   return (
     <View style={styles.container}>
@@ -43,6 +46,7 @@ export function Input({
         />
       )}
       <TextInput
+        ref={inputRef}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

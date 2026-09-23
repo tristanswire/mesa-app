@@ -1,4 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { BankFilterKey } from '../lib/bankFilters';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -27,7 +28,12 @@ export type MainStackParamList = {
 
 export type TabsParamList = {
   Home: undefined;
-  Recipes: undefined;
+  // Home's search bar, chips, and bank tiles link in here. `request` is a
+  // fresh value per tap (Date.now()) so repeating the same shortcut re-applies
+  // it after the user has changed filters by hand.
+  Recipes:
+    | { filter?: BankFilterKey; focusSearch?: boolean; request: number }
+    | undefined;
   Profile: undefined;
 };
 
