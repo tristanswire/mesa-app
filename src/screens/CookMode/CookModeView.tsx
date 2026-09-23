@@ -309,9 +309,10 @@ export function CookModeView({
         console.error('[cookmode] failed to read prefs, defaulting to show prompt', e);
       }
       if (showPrompt) {
-        // replace, not push: PostCook is terminal — finishing it resets to Home,
-        // not back into Cook Mode
-        navigation.replace('PostCook', { recipeId: recipe.id, cookId, scale });
+        // push, not replace: Cook Mode stays mounted under PostCook so its back
+        // chevron / swipe-back returns here at the last step with timers, text
+        // size, theme, and scale intact. Finishing PostCook resets to Home.
+        navigation.push('PostCook', { recipeId: recipe.id, cookId, scale });
       } else {
         try {
           await completeCook(cookId);
@@ -484,7 +485,7 @@ export function CookModeView({
           <View style={styles.navBtn}>
             <Button
               variant={tc.primaryButtonVariant}
-              label={isLastStep ? 'Finish Cooking →' : 'Next Step →'}
+              label={isLastStep ? 'Finish' : 'Next Step →'}
               onPress={handleNext}
             />
           </View>

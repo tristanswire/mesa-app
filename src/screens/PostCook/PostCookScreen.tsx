@@ -3,8 +3,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Check, Star, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { Check, ChevronLeft, Star, X } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -164,10 +164,37 @@ export function PostCookScreen() {
     }
   }, [loading, recipe, navigation]);
 
+  // Cook Mode is pushed beneath this screen (not replaced), so back returns to
+  // the same mounted instance at its last step. If it isn't there (e.g. a
+  // restored stack), disable swipe-back so it can't skip to Recipe Detail —
+  // the chevron's fallback handles that case instead.
+  const state = navigation.getState();
+  const prevRoute = state.routes[state.index - 1];
+  const cookModeBelow = prevRoute?.name === 'CookMode';
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: cookModeBelow });
+  }, [navigation, cookModeBelow]);
+
+  // Leaving back into Cook Mode (chevron or iOS swipe-back) means the cook is
+  // still in progress, so it must not be marked complete on unmount. Reset
+  // (Save / X) and pop-to-top still complete it.
+  const returningToCookRef = useRef(false);
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        const type = e.data.action.type;
+        if (type === 'GO_BACK' || type === 'POP' || type === 'REPLACE') {
+          returningToCookRef.current = true;
+        }
+      }),
+    [navigation],
+  );
+
   // Mark this cook as completed on unmount. Rating/notes are saved only via
   // the explicit Save button — X dismisses without persisting them.
   useEffect(() => {
     return () => {
+      if (returningToCookRef.current) return;
       completeCook(cookId).catch((e) =>
         console.error('[postcook] failed to complete cook', e),
       );
@@ -222,6 +249,21 @@ export function PostCookScreen() {
     goHome();
   };
 
+  // Back to Cook Mode at the final step. goBack() keeps the existing instance
+  // (and its timers/theme/text size/scale); the fallback only runs when Cook
+  // Mode isn't beneath this screen.
+  const handleBack = () => {
+    if (cookModeBelow) {
+      navigation.goBack();
+    } else {
+      navigation.replace('CookMode', {
+        recipeId: recipe.id,
+        stepIndex: Math.max(recipe.steps.length - 1, 0),
+        scale: route.params.scale,
+      });
+    }
+  };
+
   const handleDismiss = () => {
     // completeCook fires on unmount; rating/notes are not persisted on dismiss.
     goHome();
@@ -231,8 +273,17 @@ export function PostCookScreen() {
     <View style={[styles.root, { backgroundColor: tc.background }]}>
       <StatusBar style={tc.statusBarStyle} />
 
-      {/* ── Close button — fixed above scroll ────────────────────────── */}
+      {/* ── Back + close buttons — fixed above scroll ───────────────── */}
       <View style={[styles.closeRow, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.headerIconWrap}>
+          <IconButton
+            icon={ChevronLeft}
+            tint={tc.closeTint}
+            size="md"
+            onPress={handleBack}
+            accessibilityLabel="Back to cooking"
+          />
+        </View>
         <IconButton
           icon={X}
           tint={tc.closeTint}
@@ -396,8 +447,16 @@ const styles = StyleSheet.create({
   },
   // ── Close button ────────────────────────────────────────────────────
   closeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.base,
     paddingBottom: spacing.sm,
+  },
+  // Matches Prep Mode's header back-button slot.
+  headerIconWrap: {
+    width: 40,
+    alignItems: 'center',
   },
   // ── Scroll ──────────────────────────────────────────────────────────
   scroll: {
